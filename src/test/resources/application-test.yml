@@ -1,0 +1,30 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+app:
+  fiscal:
+    modo: NO_FISCAL
+    afip:
+      base-url: http://localhost
+      timeout-ms: 1000
+      cuit-empresa: ""
+      punto-venta: 1
+    hasar:
+      puerto-serie: COM1
+      baud-rate: 9600
+  jwt:
+    secret: test-secret-key-must-be-at-least-32-characters
+    expiration-ms: 3600000
+  n8n:
+    webhook-url: ""
+    enabled: false
+  cors:
+    allowed-origins:
+      - http://localhost:5173

@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+  jpa:
+    open-in-view: false
+
+app:
+  jwt:
+    secret: test-secret-key-min-256-bits-long-enough-for-jwt-signing-alg
+    expiration-ms: 3600000
+  fiscal:
+    modo: NO_FISCAL
+  n8n:
+    webhook-url: ""
+    enabled: false
+  cors:
+    allowed-origins:
+      - http://localhost:5173

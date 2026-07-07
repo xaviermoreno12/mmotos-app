@@ -1,0 +1,1239 @@
+================================================================================
+  M MOTOS CORE - HISTORIAL COMPLETO CON CODIGO
+  Fecha: 10/05/2026
+  Proyecto: C:\Users\fabri\Desktop\xavier\skills\AplicacionesJava\MMotosApp
+================================================================================
+
+STACK
+  Backend : Java 21 + Spring Boot 3.3.5 + Maven 3.9.9
+  DB      : PostgreSQL 16, puerto 5432, base: mmotos
+  Frontend: React 18 + TypeScript + Vite 5 + Tailwind 3 + TanStack Query v5
+  Auth    : JWT (JJWT 0.12.6), roles CAJERO / DUENO
+  Fiscal  : NoFiscalAdapter | AfipAdapter | HasarAdapter (serial)
+  Rutas   : Java en C:\Java\jdk-21  y  C:\Java\maven
+
+================================================================================
+  ETAPA 1 - pom.xml + application.yml + MMotosApplication.java
+================================================================================
+
+--- pom.xml dependencias clave ---
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.3.5</version>
+</parent>
+Dependencias incluidas:
+  spring-boot-starter-web
+  spring-boot-starter-data-jpa
+  spring-boot-starter-validation
+  spring-boot-starter-security
+  spring-boot-starter-actuator
+  postgresql driver
+  flyway-core + flyway-database-postgresql
+  hypersistence-utils-hibernate-63:3.8.3  (JSONB)
+  io.jsonwebtoken:jjwt-api:0.12.6
+  io.jsonwebtoken:jjwt-impl:0.12.6
+  io.jsonwebtoken:jjwt-jackson:0.12.6
+  io.github.java-native:jssc:2.9.4
+  lombok
+  testcontainers:postgresql (scope test)
+
+--- application.yml ---
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mmotos}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate.ddl-auto: validate
+    show-sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+app:
+  fiscal:
+    modo: NO_FISCAL
+    afip:
+      base-url: ${AFIP_URL:https://wsaa.afip.gov.ar}
+      timeout-ms: 10000
+      cuit-empresa: ${AFIP_CUIT:}
+      punto-venta: ${AFIP_PV:1}
+    hasar:
+      puerto-serie: ${HASAR_COM:COM1}
+      baud-rate: 9600
+  jwt:
+    secret: ${JWT_SECRET:clave-secreta-debe-tener-minimo-32-caracteres}
+    expiration-ms: 86400000
+  cors:
+    allowed-origins:
+      - ${CORS_ORIGIN_1:http://localhost:5173}
+
+--- MMotosApplication.java ---
+@SpringBootApplication
+@EnableScheduling
+@EnableConfigurationProperties(AppProperties.class)
+public class MMotosApplication {
+    private static final Logger log = LoggerFactory.getLogger(MMotosApplication.class);
+    public static void main(String[] args) {
+        String arch = System.getProperty("os.arch", "");
+        if (arch.contains("32") || arch.equals("x86")) {
+            log.warn("Arquitectura x86 detectada. JSSC puede no funcionar.");
+        }
+        try { Class.forName("jssc.SerialPort"); }
+        catch (ClassNotFoundException e) {
+            log.warn("JSSC no disponible. Hardware serial desactivado.");
+        }
+        SpringApplication.run(MMotosApplication.class, args);
+    }
+}
+
+--- AppProperties.java ---
+@ConfigurationProperties(prefix = "app")
+public record AppProperties(Fiscal fiscal, Jwt jwt, N8n n8n, Cors cors) {
+    public record Fiscal(String modo, Afip afip, Hasar hasar) {
+        public record Afip(String baseUrl, int timeoutMs, String cuitEmpresa, int puntoVenta) {}
+        public record Hasar(String puertoSerie, int baudRate) {}
+    }
+    public record Jwt(String secret, long expirationMs) {}
+    public record N8n(String webhookUrl, boolean enabled) {}
+    public record Cors(List<String> allowedOrigins) {}
+}
+
+================================================================================
+  ETAPA 2 - DOMINIO PURO (cero dependencias Spring o JPA)
+================================================================================
+
+--- domain/model/Precio.java ---
+public record Precio(BigDecimal monto, Moneda moneda) {
+    public Precio {
+        if (monto.compareTo(BigDecimal.ZERO) < 0)
+            throw new IllegalArgumentException("Precio negativo");
+    }
+    public BigDecimal calcularEnPesos(BigDecimal cotizacion) {
+        if (moneda == Moneda.ARS) return monto;
+        return monto.multiply(cotizacion).setScale(2, RoundingMode.HALF_UP);
+    }
+}
+
+--- domain/model/Repuesto.java (abstract) ---
+public abstract class Repuesto {
+    protected final UUID id;
+    protected final String sku;
+    protected final String nombre;
+    protected Precio precio;
+    protected int stockActual;
+    protected final int stockMinimo;
+
+    public void validarDisponibilidad(int cantidad) {
+        if (stockActual < cantidad)
+            throw new InsufficientStockException("Stock insuficiente para " + sku);
+    }
+    public boolean estaBajoMinimo() { return stockActual <= stockMinimo; }
+    void actualizarStock(int delta) { this.stockActual += delta; }
+    void actualizarPrecio(Precio nuevoPrecio) { this.precio = nuevoPrecio; }
+    public abstract void descontarStock(int cantidad);
+}
+
+--- domain/model/RepuestoSimple.java ---
+public class RepuestoSimple extends Repuesto {
+    public RepuestoSimple(UUID id, String sku, String nombre,
+                          Precio precio, int stockActual, int stockMinimo) {
+        this.id = id; this.sku = sku; this.nombre = nombre;
+        this.precio = precio; this.stockActual = stockActual;
+        this.stockMinimo = stockMinimo;
+    }
+    @Override
+    public void descontarStock(int cantidad) {
+        validarDisponibilidad(cantidad);
+        actualizarStock(-cantidad);
+    }
+}
+
+--- domain/model/KitComposicion.java (Composite Pattern) ---
+public class KitComposicion extends Repuesto {
+    private final List<ComponenteKit> componentes;
+    private BigDecimal precioPromocional;
+
+    @Override
+    public void descontarStock(int cantidad) {
+        // FASE 1: valida TODOS (atomicidad)
+        componentes.forEach(c ->
+            c.repuesto().validarDisponibilidad(c.cantidad() * cantidad));
+        // FASE 2: descuenta en cascada
+        componentes.forEach(c ->
+            c.repuesto().descontarStock(c.cantidad() * cantidad));
+    }
+
+    public BigDecimal obtenerPrecioFinal(BigDecimal cotizacion) {
+        if (precioPromocional != null) return precioPromocional;
+        return componentes.stream()
+            .map(c -> c.repuesto().precio.calcularEnPesos(cotizacion)
+                       .multiply(BigDecimal.valueOf(c.cantidad())))
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+}
+
+--- domain/model/ComponenteKit.java ---
+public record ComponenteKit(Repuesto repuesto, int cantidad) {}
+
+--- domain/model/Pago.java (sealed) ---
+public sealed interface Pago
+    permits PagoEfectivo, PagoTarjeta, PagoTransferencia, PagoMercadoPago {
+    BigDecimal monto();
+}
+public record PagoEfectivo(BigDecimal monto) implements Pago {}
+public record PagoTarjeta(BigDecimal monto, String numeroTarjeta, String banco) implements Pago {}
+public record PagoTransferencia(BigDecimal monto, String comprobante) implements Pago {}
+public record PagoMercadoPago(BigDecimal monto, String alias) implements Pago {}
+
+--- domain/model/Venta.java ---
+public class Venta {
+    private UUID id;
+    private List<LineaVenta> lineas;
+    private List<Pago> pagos;
+    private TipoFactura tipoFactura;
+    private EstadoFiscal estadoFiscal;
+    private String cae;
+    private String numeroTicket;
+
+    public boolean estaBalanceada() {
+        BigDecimal totalLineas = lineas.stream()
+            .map(l -> l.precioHistorico().multiply(BigDecimal.valueOf(l.cantidad())))
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalPagos = pagos.stream()
+            .map(Pago::monto).reduce(BigDecimal.ZERO, BigDecimal::add);
+        return totalPagos.compareTo(totalLineas) >= 0;
+    }
+}
+
+--- domain/service/VentaBuilder.java ---
+public class VentaBuilder {
+    private final FiscalPort fiscalPort;
+    private List<LineaVenta> lineas = new ArrayList<>();
+    private List<Pago> pagos = new ArrayList<>();
+    private TipoFactura tipoFactura = TipoFactura.B;
+
+    public VentaBuilder agregarLinea(Repuesto r, int cant, BigDecimal precio) {
+        lineas.add(new LineaVenta(r, cant, precio));
+        return this;
+    }
+    public VentaBuilder agregarPago(Pago pago) {
+        pagos.add(pago); return this;
+    }
+    public Venta build() {
+        if (tipoFactura != TipoFactura.NO_FISCAL && !fiscalPort.isHardwareReady())
+            throw new HardwareFailureException("Impresora fiscal no disponible");
+        Venta v = new Venta(UUID.randomUUID(), lineas, pagos, tipoFactura);
+        if (!v.estaBalanceada())
+            throw new PaymentInconsistencyException("Pago insuficiente");
+        return v;
+    }
+}
+
+--- domain/model/SyncLogEntity - backoff exponencial ---
+public void registrarFallo(String error) {
+    this.intentos++;
+    this.ultimoError = error;
+    this.estado = SyncStatus.FAILED;
+    // Backoff: n^2 minutos (1, 4, 9, 16, 25...)
+    long minutosEspera = (long) Math.pow(intentos, 2);
+    this.proximaSincronizacion = LocalDateTime.now().plusMinutes(minutosEspera);
+}
+public void marcarSynced() {
+    this.estado = SyncStatus.SYNCED;
+    this.proximaSincronizacion = null;
+}
+
+================================================================================
+  ETAPA 3 - PERSISTENCIA JPA + FLYWAY DDL
+================================================================================
+
+--- ProductoEntity.java ---
+@Entity @Table(name = "productos")
+public class ProductoEntity {
+    @Id @Column(columnDefinition = "uuid") private UUID id;
+    @Column(unique = true, nullable = false, length = 50) private String sku;
+    @Column(nullable = false) private String nombre;
+    @Column(name = "precio_venta", precision = 12, scale = 2) private BigDecimal precioVenta;
+    @Column(length = 3) private String moneda;
+    @Column(name = "stock_actual") private int stockActual;
+    @Column(name = "stock_minimo") private int stockMinimo;
+    @Type(JsonType.class)
+    @Column(name = "atributos_extra", columnDefinition = "jsonb")
+    private ObjectNode atributosExtra;   // hypersistence-utils para JSONB
+    @Column(nullable = false) private boolean activo = true;
+    // constructor, getters, setters...
+}
+
+--- ProductoJpaRepository.java ---
+public interface ProductoJpaRepository extends JpaRepository<ProductoEntity, UUID> {
+
+    Optional<ProductoEntity> findBySkuAndActivoTrue(String sku);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM ProductoEntity p WHERE p.id = :id")
+    Optional<ProductoEntity> findByIdWithLock(@Param("id") UUID id);
+
+    @Query(value = """
+        SELECT * FROM productos
+        WHERE atributos_extra @> CAST(:json AS jsonb) AND activo = true
+        """, nativeQuery = true)
+    List<ProductoEntity> buscarPorAtributos(@Param("json") String json);
+
+    @Query(value = """
+        SELECT * FROM productos
+        WHERE nombre % :termino AND activo = true
+        ORDER BY similarity(nombre, :termino) DESC
+        """, nativeQuery = true)
+    List<ProductoEntity> buscarPorNombreSimilar(@Param("termino") String termino);
+
+    @Query("SELECT p FROM ProductoEntity p WHERE p.stockActual <= p.stockMinimo AND p.activo = true")
+    List<ProductoEntity> findBajoMinimo();
+}
+
+--- SyncLogJpaRepository.java ---
+public interface SyncLogJpaRepository extends JpaRepository<SyncLogEntity, UUID> {
+
+    @Query("""
+        SELECT s FROM SyncLogEntity s
+        WHERE s.estado IN ('PENDING','FAILED')
+        AND s.proximaSincronizacion <= :ahora
+        """)
+    List<SyncLogEntity> findPendientesParaSincronizar(@Param("ahora") LocalDateTime ahora);
+
+    Optional<SyncLogEntity> findByEntidadId(UUID entidadId);
+}
+
+--- UsuarioJpaRepository.java ---
+public interface UsuarioJpaRepository extends JpaRepository<UsuarioEntity, UUID> {
+    Optional<UsuarioEntity> findByUsernameAndActivoTrue(String username);
+}
+
+--- V1__init.sql ---
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TYPE rol_usuario_enum   AS ENUM ('CAJERO', 'DUENO');
+CREATE TYPE tipo_factura_enum  AS ENUM ('A', 'B', 'C', 'NO_FISCAL');
+CREATE TYPE estado_fiscal_enum AS ENUM ('PENDIENTE', 'APROBADO', 'ERROR_HARDWARE', 'CONTINGENCIA');
+CREATE TYPE sync_status_enum   AS ENUM ('LOCAL', 'PENDING', 'SYNCED', 'CONFLICT', 'FAILED');
+CREATE TYPE metodo_pago_enum   AS ENUM ('EFECTIVO', 'TARJETA_DEBITO', 'TRANSFERENCIA', 'MERCADO_PAGO');
+
+CREATE TABLE usuarios (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre        VARCHAR(100) NOT NULL,
+    username      VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    rol           rol_usuario_enum NOT NULL DEFAULT 'CAJERO',
+    activo        BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at    TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE productos (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sku             VARCHAR(50) UNIQUE NOT NULL,
+    nombre          VARCHAR(255) NOT NULL,
+    precio_venta    NUMERIC(12,2) NOT NULL,
+    moneda          CHAR(3) NOT NULL DEFAULT 'ARS',
+    stock_actual    INT NOT NULL DEFAULT 0,
+    stock_minimo    INT NOT NULL DEFAULT 0,
+    atributos_extra JSONB,
+    ubicacion       VARCHAR(20),
+    es_kit          BOOLEAN NOT NULL DEFAULT FALSE,
+    activo          BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Indices GIN para busqueda JSONB y trigrama
+CREATE INDEX idx_productos_atributos_gin  ON productos USING GIN (atributos_extra);
+CREATE INDEX idx_productos_nombre_trgm    ON productos USING GIN (nombre gin_trgm_ops);
+CREATE INDEX idx_productos_atributos_trgm ON productos USING GIN ((atributos_extra::text) gin_trgm_ops);
+CREATE INDEX idx_productos_bajo_minimo    ON productos (stock_actual)
+    WHERE stock_actual <= stock_minimo AND activo = TRUE;
+
+CREATE TABLE ventas (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    numero_ticket VARCHAR(30) UNIQUE,
+    tipo_factura  tipo_factura_enum NOT NULL DEFAULT 'B',
+    cuit_cliente  VARCHAR(11),
+    estado_fiscal estado_fiscal_enum NOT NULL DEFAULT 'PENDIENTE',
+    sync_status   sync_status_enum NOT NULL DEFAULT 'LOCAL',
+    total         NUMERIC(14,2) NOT NULL,
+    cae           VARCHAR(14),
+    usuario_id    UUID REFERENCES usuarios(id),
+    created_at    TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE venta_detalle (
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    venta_id         UUID NOT NULL REFERENCES ventas(id),
+    producto_id      UUID NOT NULL REFERENCES productos(id),
+    cantidad         INT NOT NULL,
+    precio_historico NUMERIC(12,2) NOT NULL,
+    nombre_historico VARCHAR(255) NOT NULL,
+    subtotal         NUMERIC(14,2) GENERATED ALWAYS AS (cantidad * precio_historico) STORED
+);
+
+CREATE TABLE pagos (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    venta_id       UUID NOT NULL REFERENCES ventas(id),
+    metodo_pago    metodo_pago_enum NOT NULL,
+    monto          NUMERIC(14,2) NOT NULL,
+    numero_tarjeta VARCHAR(20),
+    banco          VARCHAR(100),
+    comprobante    VARCHAR(100),
+    alias          VARCHAR(100)
+);
+
+CREATE TABLE sync_log (
+    id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    entidad_id             UUID NOT NULL,
+    tipo_entidad           VARCHAR(50) NOT NULL,
+    estado                 sync_status_enum NOT NULL DEFAULT 'PENDING',
+    intentos               INT NOT NULL DEFAULT 0,
+    ultimo_error           TEXT,
+    proxima_sincronizacion TIMESTAMP,
+    created_at             TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE configuracion_sistema (
+    clave      VARCHAR(100) PRIMARY KEY,
+    valor      TEXT NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO configuracion_sistema (clave, valor) VALUES
+    ('cotizacion_dolar', '1200.00'),
+    ('version_app', '0.1.0');
+
+INSERT INTO usuarios (nombre, username, password_hash, rol) VALUES
+    ('Administrador', 'admin', '$2a$12$placeholder_replace_on_first_login', 'DUENO');
+
+--- V2__seed_usuarios.sql ---
+-- Password: admin123 (BCrypt cost 10, generado con Python bcrypt)
+UPDATE usuarios
+SET password_hash = '$2b$10$5NjtTt0jdAPGb.j1ZofeQOWNvsfHlgZ6FWR99F.XyEArjT8SPciPW'
+WHERE username = 'admin';
+
+-- Cajero de prueba - Password: cajero123
+INSERT INTO usuarios (id, nombre, username, password_hash, rol, activo)
+VALUES (
+    gen_random_uuid(), 'Cajero Test', 'cajero',
+    '$2b$10$4bRLVgnODye9iX/ej5du0OpQh0m1sGr8BhG2BspFBxjXEcP8Ohm7.',
+    'CAJERO', true
+) ON CONFLICT (username) DO NOTHING;
+
+================================================================================
+  ETAPA 4 - ADAPTADORES EXTERNOS
+================================================================================
+
+--- output/fiscal/SerialDriver.java (interface para desacoplar JSSC) ---
+public interface SerialDriver {
+    void abrir(String puerto, int baudRate) throws HardwareFailureException;
+    void enviar(byte[] datos) throws HardwareFailureException;
+    byte[] recibir(int timeoutMs) throws HardwareFailureException;
+    void cerrar();
+    boolean estaConectado();
+}
+
+--- output/fiscal/JsscSerialDriver.java ---
+@Component
+public class JsscSerialDriver implements SerialDriver {
+    private SerialPort serialPort;
+
+    @Override
+    public void abrir(String puerto, int baudRate) {
+        serialPort = new SerialPort(puerto);
+        try {
+            serialPort.openPort();
+            serialPort.setParams(baudRate, 8, 1, 0);
+        } catch (SerialPortException e) {
+            throw new HardwareFailureException("No se pudo abrir " + puerto + ": " + e.getMessage());
+        }
+    }
+    // enviar, recibir, cerrar, estaConectado...
+}
+
+--- output/fiscal/NoFiscalAdapter.java ---
+@Service
+public class NoFiscalAdapter implements FiscalPort {
+    private final AtomicLong contador = new AtomicLong(0);
+
+    @Override public boolean isHardwareReady() { return true; }
+
+    @Override
+    public FiscalResponse emitir(Venta venta) {
+        long seq = contador.incrementAndGet();
+        String fecha = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String ticket = String.format("INT-%s-%05d", fecha, seq);
+        return new FiscalResponse(ticket, null, "APROBADO");
+    }
+}
+
+--- output/fiscal/AfipAdapter.java (fragmento clave) ---
+@Override
+public FiscalResponse emitir(Venta venta) {
+    // Idempotencia: si ya tiene CAE para este ticket, devolverlo
+    Optional<String> caeExistente = consultarCaeExistente(venta.getNumeroTicket());
+    if (caeExistente.isPresent())
+        return new FiscalResponse(venta.getNumeroTicket(), caeExistente.get(), "APROBADO");
+
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(URI.create(props.fiscal().afip().baseUrl() + "/wsfev1/service.asmx"))
+        .timeout(Duration.ofMillis(props.fiscal().afip().timeoutMs()))
+        .POST(HttpRequest.BodyPublishers.ofString(buildSoapPayload(venta)))
+        .header("Content-Type", "text/xml")
+        .build();
+    try {
+        HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+        return parseAfipResponse(response.body());
+    } catch (IOException | InterruptedException e) {
+        throw new FiscalException("Error comunicando con AFIP: " + e.getMessage());
+    }
+}
+
+--- output/fiscal/HasarAdapter.java (usa SerialDriver, no JSSC directo) ---
+@Override
+public FiscalResponse emitir(Venta venta) {
+    if (!serialDriver.estaConectado())
+        serialDriver.abrir(props.fiscal().hasar().puertoSerie(),
+                           props.fiscal().hasar().baudRate());
+    byte[] cmd = buildCommand(venta);
+    serialDriver.enviar(cmd);
+    byte[] resp = serialDriver.recibir(5000);
+    return parseHasarResponse(resp);
+}
+private byte[] buildCommand(Venta venta) {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    out.write(0x02); // STX
+    // datos venta en protocolo Hasar
+    out.write(0x03); // ETX
+    return out.toByteArray();
+}
+
+--- config/FiscalConfig.java ---
+@Configuration
+public class FiscalConfig {
+    @Bean
+    public FiscalPort fiscalPort(AppProperties props,
+                                  NoFiscalAdapter noFiscal,
+                                  AfipAdapter afip,
+                                  HasarAdapter hasar) {
+        return switch (props.fiscal().modo().toUpperCase()) {
+            case "AFIP"  -> afip;
+            case "HASAR" -> hasar;
+            default      -> noFiscal;
+        };
+    }
+}
+
+================================================================================
+  ETAPA 5 - USE CASES
+================================================================================
+
+--- RealizarVentaUseCase.java ---
+@Service @RequiredArgsConstructor
+public class RealizarVentaUseCase {
+    private final VentaTransaccionHelper transaccionHelper;
+    private final FiscalPort fiscalPort;
+    private final ConfiguracionRepository configuracionRepository;
+
+    public VentaResponse ejecutar(VentaRequest request) {
+        BigDecimal cotizacion = configuracionRepository
+            .getCotizacionDolar().orElse(BigDecimal.ONE);
+
+        // TX1: validar stock + descontar + guardar PENDIENTE
+        Venta venta = transaccionHelper.guardarPendiente(request, cotizacion, fiscalPort);
+
+        // Llamada fiscal FUERA de TX (timeout hasta 10s con AFIP)
+        try {
+            FiscalPort.FiscalResponse fr = fiscalPort.emitir(venta);
+            // TX2: confirmar con CAE
+            return transaccionHelper.confirmarFiscal(venta.getId(), fr);
+        } catch (FiscalException e) {
+            // TX3: marcar ERROR_HARDWARE
+            transaccionHelper.marcarError(venta.getId());
+            throw e;
+        }
+    }
+}
+
+--- VentaTransaccionHelper.java (FIX: self-invocation @Transactional) ---
+// PROBLEMA ORIGINAL: Spring AOP no intercepta llamadas 'this.metodo()'
+// La anotacion @Transactional NO se aplica cuando se llama desde el mismo bean
+// SOLUCION: extraer a @Service separado para que Spring inyecte el proxy correcto
+
+@Service @RequiredArgsConstructor
+public class VentaTransaccionHelper {
+
+    @Transactional
+    public Venta guardarPendiente(VentaRequest request, BigDecimal cotizacion,
+                                   FiscalPort fiscalPort) {
+        // Lock pesimista por producto para evitar race conditions
+        request.lineas().forEach(l -> {
+            ProductoEntity pe = productoRepo.findByIdWithLock(l.productoId()).orElseThrow();
+            if (pe.getStockActual() < l.cantidad())
+                throw new InsufficientStockException("Stock insuficiente: " + pe.getSku());
+            pe.setStockActual(pe.getStockActual() - l.cantidad());
+            productoRepo.save(pe);
+        });
+        VentaEntity ve = ventaMapper.toVentaEntity(request, cotizacion);
+        ventaRepo.save(ve);
+        syncLogRepo.save(new SyncLogEntity(UUID.randomUUID(), ve.getId(), "VENTA"));
+        return ventaMapper.toDomain(ve);
+    }
+
+    @Transactional
+    public VentaResponse confirmarFiscal(UUID ventaId, FiscalPort.FiscalResponse fr) {
+        VentaEntity v = ventaRepo.findById(ventaId).orElseThrow();
+        v.setNumeroTicket(fr.numeroTicket());
+        v.setCae(fr.cae());
+        v.setEstadoFiscal(EstadoFiscal.APROBADO);
+        v.setSyncStatus(SyncStatus.PENDING);
+        ventaRepo.save(v);
+        return new VentaResponse(v.getId(), v.getNumeroTicket(), v.getCae(),
+            "APROBADO", "PENDING", v.getTotal(), v.getCreatedAt());
+    }
+
+    @Transactional
+    public void marcarError(UUID ventaId) {
+        ventaRepo.findById(ventaId).ifPresent(v -> {
+            v.setEstadoFiscal(EstadoFiscal.ERROR_HARDWARE);
+            ventaRepo.save(v);
+        });
+    }
+}
+
+--- SyncVentasUseCase.java (Outbox Pattern) ---
+@Service @RequiredArgsConstructor
+public class SyncVentasUseCase {
+    private final SyncLogJpaRepository syncLogRepo;
+    private final SyncVentaProcessor processor; // FIX: self-invocation separado
+
+    @Scheduled(fixedDelay = 60_000)
+    public void procesarPendientes() {
+        syncLogRepo.findPendientesParaSincronizar(LocalDateTime.now())
+            .forEach(processor::procesar);
+    }
+}
+
+--- SyncVentaProcessor.java ---
+@Service @RequiredArgsConstructor
+public class SyncVentaProcessor {
+    private final SyncLogJpaRepository syncLogRepo;
+    private final N8nAdapter n8nAdapter;
+
+    @Transactional
+    public void procesar(SyncLogEntity log) {
+        try {
+            n8nAdapter.enviarAlertaSync(log.getEntidadId(), log.getTipoEntidad());
+            log.marcarSynced();
+        } catch (Exception e) {
+            log.registrarFallo(e.getMessage());
+        } finally {
+            syncLogRepo.save(log);
+        }
+    }
+}
+
+--- BuscarProductoUseCase.java ---
+@Service @RequiredArgsConstructor
+public class BuscarProductoUseCase {
+    private final ProductoJpaRepository repo;
+
+    public Optional<ProductoDTO> porId(UUID id) {
+        return repo.findById(id).map(ProductoMapper::toDTO);
+    }
+
+    public List<ProductoDTO> buscar(String termino) {
+        List<ProductoEntity> resultado = new ArrayList<>();
+        repo.findBySkuAndActivoTrue(termino).ifPresent(resultado::add);
+        resultado.addAll(repo.buscarPorNombreSimilar(termino));
+        return resultado.stream().distinct().map(ProductoMapper::toDTO).toList();
+    }
+}
+
+================================================================================
+  ETAPA 6 - REST CONTROLLERS + SEGURIDAD
+================================================================================
+
+--- input/rest/ProductoController.java ---
+@RestController @RequestMapping("/api/productos")
+public class ProductoController {
+    private final BuscarProductoUseCase buscarProductoUseCase;
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductoDTO> porId(@PathVariable UUID id) {
+        return buscarProductoUseCase.porId(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/buscar")
+    public List<ProductoDTO> buscar(@RequestParam String termino) {
+        return buscarProductoUseCase.buscar(termino);
+    }
+}
+
+--- input/rest/VentaController.java ---
+@RestController @RequestMapping("/api/ventas")
+public class VentaController {
+    private final RealizarVentaUseCase realizarVentaUseCase;
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public VentaResponse realizarVenta(@Valid @RequestBody VentaRequest request) {
+        return realizarVentaUseCase.ejecutar(request);
+    }
+}
+
+--- input/rest/AuthController.java ---
+@RestController @RequestMapping("/api/auth")
+public class AuthController {
+    @PostMapping("/login")
+    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
+        var usuario = usuarioRepo.findByUsernameAndActivoTrue(request.username())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales invalidas"));
+        if (!passwordEncoder.matches(request.password(), usuario.getPasswordHash()))
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales invalidas");
+        String token = jwtService.generarToken(usuario.getUsername(), usuario.getRol());
+        return new LoginResponse(token, usuario.getUsername(), usuario.getRol(),
+                                 usuario.getId().toString());
+    }
+    public record LoginRequest(@NotBlank String username, @NotBlank String password) {}
+    public record LoginResponse(String token, String username, String rol, String usuarioId) {}
+}
+
+--- config/JwtService.java ---
+@Service
+public class JwtService {
+    private final SecretKey key;
+    private final long expirationMs;
+
+    public JwtService(AppProperties props) {
+        this.key = Keys.hmacShaKeyFor(
+            props.jwt().secret().getBytes(StandardCharsets.UTF_8));
+        this.expirationMs = props.jwt().expirationMs();
+    }
+
+    public String generarToken(String username, String rol) {
+        return Jwts.builder()
+            .subject(username)
+            .claim("rol", rol)
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + expirationMs))
+            .signWith(key).compact();
+    }
+
+    public boolean esValido(String token) {
+        try { parsear(token); return true; }
+        catch (JwtException | IllegalArgumentException e) { return false; }
+    }
+
+    public String extractUsername(String token) {
+        return parsear(token).getPayload().getSubject();
+    }
+
+    private Jws<Claims> parsear(String token) {
+        return Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
+    }
+}
+
+--- config/SecurityConfig.java ---
+@Configuration @EnableWebSecurity @EnableMethodSecurity
+public class SecurityConfig {
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/api/config/**").hasRole("DUENO")
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .build();
+    }
+    @Bean
+    public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(12); }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(appProperties.cors().allowedOrigins());
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", config);
+        return source;
+    }
+}
+
+--- config/GlobalExceptionHandler.java ---
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ProblemDetail handleStock(InsufficientStockException ex) {
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+        pd.setTitle("Stock insuficiente"); pd.setDetail(ex.getMessage()); return pd;
+    }
+    @ExceptionHandler(HardwareFailureException.class)
+    public ProblemDetail handleHardware(HardwareFailureException ex) {
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.SERVICE_UNAVAILABLE);
+        pd.setTitle("Error de hardware fiscal"); pd.setDetail(ex.getMessage()); return pd;
+    }
+    @ExceptionHandler(FiscalException.class)
+    public ProblemDetail handleFiscal(FiscalException ex) {
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_GATEWAY);
+        pd.setTitle("Error fiscal"); pd.setDetail(ex.getMessage()); return pd;
+    }
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        pd.setTitle("Error de validacion");
+        Map<String, String> errores = new LinkedHashMap<>();
+        ex.getBindingResult().getFieldErrors()
+            .forEach(fe -> errores.put(fe.getField(), fe.getDefaultMessage()));
+        pd.setProperty("errores", errores); return pd;
+    }
+}
+
+================================================================================
+  ETAPA 7 - TESTS
+================================================================================
+
+--- ProductoJpaRepositoryTest.java (Testcontainers) ---
+@DataJpaTest @Testcontainers @ActiveProfiles("test")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+class ProductoJpaRepositoryTest {
+
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
+        .withDatabaseName("mmotos_test").withUsername("test").withPassword("test");
+
+    @Autowired ProductoJpaRepository repository;
+
+    @Test
+    void buscarPorAtributosGin() {
+        ObjectNode atributos = JsonNodeFactory.instance.objectNode();
+        atributos.put("viscosidad", "20W50");
+        repository.save(buildProducto("OIL-001", 5, 2, atributos));
+        repository.save(buildProducto("OIL-002", 5, 2, JsonNodeFactory.instance.objectNode()));
+
+        List<ProductoEntity> resultado = repository.buscarPorAtributos("{\"viscosidad\":\"20W50\"}");
+
+        assertThat(resultado).extracting(ProductoEntity::getSku).containsExactly("OIL-001");
+    }
+
+    @Test
+    void findBajoMinimoDevuelveSoloLosCriteriosCumplen() {
+        repository.save(buildProducto("LOW-001", 1, 5, JsonNodeFactory.instance.objectNode()));
+        repository.save(buildProducto("OK-001", 10, 5, JsonNodeFactory.instance.objectNode()));
+
+        assertThat(repository.findBajoMinimo())
+            .extracting(ProductoEntity::getSku)
+            .containsExactly("LOW-001").doesNotContain("OK-001");
+    }
+}
+
+--- SyncLogJpaRepositoryTest.java ---
+@Test
+void findPendientesSoloLosQueCorresponden() {
+    SyncLogEntity pendiente = new SyncLogEntity(UUID.randomUUID(), ventaId, "VENTA");
+    repository.save(pendiente);
+
+    SyncLogEntity synced = new SyncLogEntity(UUID.randomUUID(), UUID.randomUUID(), "VENTA");
+    synced.marcarSynced();
+    repository.save(synced);
+
+    List<SyncLogEntity> resultado =
+        repository.findPendientesParaSincronizar(LocalDateTime.now().plusSeconds(1));
+
+    assertThat(resultado).hasSize(1);
+    assertThat(resultado.get(0).getEntidadId()).isEqualTo(ventaId);
+}
+
+--- VentaControllerTest.java (@WebMvcTest) ---
+@WebMvcTest(VentaController.class)
+@Import({SecurityConfig.class, JwtAuthFilter.class})
+class VentaControllerTest {
+    @Autowired MockMvc mockMvc;
+    @Autowired ObjectMapper objectMapper;
+    @MockitoBean RealizarVentaUseCase realizarVentaUseCase;
+    @MockitoBean JwtService jwtService;
+    @MockitoBean AppProperties appProperties;
+
+    @Test @WithMockUser(roles = "CAJERO")
+    void realizarVentaExitosa() throws Exception {
+        VentaResponse respuesta = new VentaResponse(
+            UUID.randomUUID(), "INT-20260509-00001", null,
+            "APROBADO", "SYNCED", new BigDecimal("1000"), LocalDateTime.now());
+        when(realizarVentaUseCase.ejecutar(any())).thenReturn(respuesta);
+
+        mockMvc.perform(post("/api/ventas")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestValido())))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.estadoFiscal").value("APROBADO"))
+            .andExpect(jsonPath("$.numeroTicket").value("INT-20260509-00001"));
+    }
+
+    @Test @WithMockUser(roles = "CAJERO")
+    void stockInsuficienteDevuelve409() throws Exception {
+        when(realizarVentaUseCase.ejecutar(any()))
+            .thenThrow(new InsufficientStockException("Stock insuficiente para SKU-001"));
+
+        mockMvc.perform(post("/api/ventas")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestValido())))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.title").value("Stock insuficiente"));
+    }
+
+    @Test
+    void sinAutenticacionDevuelve401() throws Exception {
+        mockMvc.perform(post("/api/ventas")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestValido())))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test @WithMockUser(roles = "CAJERO")
+    void bodyInvalidoDevuelve400() throws Exception {
+        VentaRequest invalido = new VentaRequest("B", null, List.of(), List.of(), null);
+        mockMvc.perform(post("/api/ventas")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalido)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.errores").exists());
+    }
+}
+
+--- src/test/resources/application-test.yml ---
+spring:
+  jpa.hibernate.ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+app:
+  fiscal.modo: NO_FISCAL
+  jwt.secret: test-secret-key-must-be-at-least-32-characters
+  jwt.expiration-ms: 3600000
+
+================================================================================
+  ETAPA 8 - FRONTEND REACT
+================================================================================
+
+ESTRUCTURA DE ARCHIVOS:
+frontend/
+  package.json
+  vite.config.ts
+  tailwind.config.js
+  postcss.config.js
+  tsconfig.json
+  index.html
+  serve.py                     <- servidor Python alternativo
+  src/
+    index.css
+    main.tsx
+    App.tsx
+    types/index.ts
+    api/
+      client.ts                <- Axios + JWT interceptor
+      auth.ts
+      productos.ts
+      ventas.ts
+    store/cartStore.ts         <- Zustand (carrito POS)
+    providers/QueryProvider.tsx
+    hooks/
+      useAuth.ts
+      useProductos.ts
+      useVenta.ts
+    components/
+      layout/
+        Sidebar.tsx            <- 11 items, active state borde-l-2 rojo
+        Header.tsx
+        Layout.tsx
+        StatusBar.tsx
+      ui/
+        Badge.tsx
+        Spinner.tsx
+        EmptyState.tsx
+        KpiCard.tsx
+    pages/
+      LoginPage.tsx            <- POST /api/auth/login
+      HomePage.tsx             <- grid modulos
+      PosPage.tsx              <- barcode + carrito + POST /api/ventas
+      ProductosPage.tsx        <- GET /api/productos/buscar
+      CajaPage.tsx
+      VentasPage.tsx
+      ReportesPage.tsx
+      MetodosPage.tsx
+      CajerosPage.tsx
+      AjustesPage.tsx          <- PUT /api/config/cotizacion
+      PlaceholderPage.tsx
+
+--- tailwind.config.js ---
+module.exports = {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        'surface':                   '#121414',
+        'surface-container-low':     '#191b1b',
+        'surface-container':         '#1f2020',
+        'surface-container-high':    '#292b2b',
+        'surface-container-highest': '#343535',
+        'on-surface':                '#e1e3e3',
+        'on-surface-variant':        '#c1c8c8',
+        'primary':                   '#ffb4a8',
+        'primary-container':         '#ff5540',
+        'secondary':                 '#c6c6c7',
+        'secondary-container':       '#454747',
+        'tertiary':                  '#acc7ff',
+        'tertiary-container':        '#488fff',
+        'error':                     '#ffb4ab',
+        'error-container':           '#93000a',
+        'outline':                   '#8f9192',
+        'outline-variant':           '#434748',
+      },
+    },
+  },
+};
+
+--- vite.config.ts ---
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': { target: 'http://localhost:8080', changeOrigin: true },
+    },
+  },
+});
+
+--- src/api/client.ts ---
+export const client = axios.create({ baseURL: '' });
+
+client.interceptors.request.use((config) => {
+  const token = localStorage.getItem('mmotos_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+client.interceptors.response.use(
+  (r) => r,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('mmotos_token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+--- src/store/cartStore.ts (Zustand) ---
+interface CartStore {
+  items: CartItem[];
+  tipoFactura: 'A' | 'B' | 'C';
+  metodoPago: string;
+  montoPago: number;
+  addItem: (producto: ProductoDTO) => void;      // agrega o suma cantidad
+  removeItem: (productoId: string) => void;
+  updateCantidad: (productoId: string, cant: number) => void;
+  setTipoFactura: (tipo: 'A'|'B'|'C') => void;
+  setMetodoPago: (metodo: string) => void;
+  setMontoPago: (monto: number) => void;
+  clearCart: () => void;
+  getTotal: () => number;
+}
+
+--- src/components/layout/Sidebar.tsx ---
+const navItems = [
+  { label: 'Lector',       icon: 'barcode_reader',       path: '/pos'          },
+  { label: 'Caja',         icon: 'point_of_sale',        path: '/caja'         },
+  { label: 'Productos',    icon: 'inventory_2',           path: '/productos'    },
+  { label: 'Listas',       icon: 'format_list_bulleted',  path: '/listas'       },
+  { label: 'Precios',      icon: 'sell',                  path: '/precios'      },
+  { label: 'Ventas',       icon: 'receipt_long',          path: '/ventas'       },
+  { label: 'Presupuestos', icon: 'request_quote',         path: '/presupuestos' },
+  { label: 'Reportes',     icon: 'bar_chart',             path: '/reportes'     },
+  { label: 'Metodos',      icon: 'credit_card',           path: '/metodos'      },
+  { label: 'Cajeros',      icon: 'badge',                 path: '/cajeros'      },
+  { label: 'Ajustes',      icon: 'settings',              path: '/ajustes'      },
+];
+// Logo: "M MOTOS / CORE" en text-primary font-black
+// Activo: border-l-2 border-primary-container bg-surface-container-high text-primary
+// Inactivo: text-on-surface-variant hover:bg-surface-container-high
+
+--- PosPage.tsx - flujo completo ---
+1. Input barcode/nombre -> useBuscarProductos(termino) (enabled >= 2 chars)
+2. Dropdown resultados -> click -> addItem(producto) en Zustand, limpiar input
+3. CartTable: qty +/-, precio unitario, subtotal por linea, eliminar fila
+4. PaymentPanel:
+   - Tipo factura (A/B/C) -> setTipoFactura
+   - Metodo pago (EFECTIVO/DEBITO/TRANSF/MP) -> setMetodoPago
+   - Si EFECTIVO: input monto -> calcula vuelto
+   - Total = sum(cantidad * precioUnitario)
+5. Boton COBRAR -> useVenta.mutate({
+     tipoFactura, cuitCliente: null,
+     lineas: items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad })),
+     pagos: [{ metodoPago, monto: total, ...nulls }],
+     usuarioId: localStorage.getItem('mmotos_user_id')
+   })
+6. onSuccess -> modal con numeroTicket, CAE, estadoFiscal, total
+7. clearCart(), resetear termino
+
+--- src/App.tsx rutas ---
+<Routes>
+  <Route path="/login" element={<LoginPage />} />
+  <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+    <Route index element={<Navigate to="/home" />} />
+    <Route path="home" element={<HomePage />} />
+    <Route path="pos" element={<PosPage />} />
+    <Route path="caja" element={<CajaPage />} />
+    <Route path="productos" element={<ProductosPage />} />
+    <Route path="ventas" element={<VentasPage />} />
+    <Route path="reportes" element={<ReportesPage />} />
+    <Route path="metodos" element={<MetodosPage />} />
+    <Route path="cajeros" element={<CajerosPage />} />
+    <Route path="ajustes" element={<AjustesPage />} />
+    <Route path="listas" element={<PlaceholderPage title="Listas" />} />
+    <Route path="precios" element={<PlaceholderPage title="Precios" />} />
+    <Route path="presupuestos" element={<PlaceholderPage title="Presupuestos" />} />
+  </Route>
+</Routes>
+
+ProtectedRoute: si no hay 'mmotos_token' en localStorage -> Navigate to /login
+
+--- serve.py ---
+class SPAHandler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=str(DIST_DIR), **kwargs)
+
+    def do_GET(self):
+        if self.path.startswith("/api"):
+            self._proxy()
+        else:
+            file_path = DIST_DIR / self.path.lstrip("/").split("?")[0]
+            if not file_path.exists() or file_path.is_dir():
+                self.path = "/index.html"     # SPA routing
+            super().do_GET()
+
+    def do_POST(self):
+        if self.path.startswith("/api"): self._proxy()
+        else: self.send_error(405)
+
+    def do_PUT(self):
+        if self.path.startswith("/api"): self._proxy()
+        else: self.send_error(405)
+
+    def _proxy(self):
+        target = "http://localhost:8080" + self.path
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length) if length > 0 else None
+        headers = {k: v for k, v in self.headers.items()
+                   if k.lower() not in ("host", "content-length")}
+        try:
+            req = urllib.request.Request(target, data=body,
+                                         method=self.command, headers=headers)
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                self._send_proxy_response(resp.status, resp.headers, resp.read())
+        except urllib.error.HTTPError as e:
+            self._send_proxy_response(e.code, e.headers, e.read())
+        except Exception as exc:
+            self.send_error(502, f"Backend no disponible: {exc}")
+
+================================================================================
+  BUGS CRITICOS RESUELTOS
+================================================================================
+
+BUG 1: @Transactional self-invocation (Spring AOP proxy bypass)
+  Problema: spring solo intercepta llamadas a traves del proxy.
+            RealizarVentaUseCase.ejecutar() llamaba this.guardarPendiente()
+            -> @Transactional NO se aplicaba, sin TX para descontar stock
+  Solucion: VentaTransaccionHelper @Service separado
+            Spring inyecta el proxy correcto
+
+BUG 2: Mismo bug en SyncVentasUseCase
+  Solucion: SyncVentaProcessor @Service separado
+
+BUG 3: @OneToMany(mappedBy="ventaId") sobre campo UUID
+  Problema: JPA espera que mappedBy referencie un campo @ManyToOne del tipo padre
+            No funciona sobre un UUID puro -> JPA AnnotationException en startup
+  Solucion: Eliminar @OneToMany, VentaDetalleJpaRepository + PagoJpaRepository
+            separados, persistir hijos individualmente en VentaRepositoryAdapter
+
+BUG 4: BCrypt lanza exception con hash placeholder
+  Problema: '$2a$12$placeholder...' no es BCrypt valido (longitud incorrecta)
+            BCryptPasswordEncoder.matches() tira IllegalArgumentException -> HTTP 500
+  Solucion: V2__seed_usuarios.sql con hash real:
+            python -c "import bcrypt; print(bcrypt.hashpw(b'admin123', bcrypt.gensalt(10)).decode())"
+            -> '$2b$10$5NjtTt0jdAPGb.j1ZofeQOWNvsfHlgZ6FWR99F.XyEArjT8SPciPW'
+
+BUG 5: VentaMapper llamaba .add() sobre colecciones eliminadas
+  Solucion: toDetalleEntities() y toPagoEntities() retornan List nuevas
+
+BUG 6: Sealed interface incompleta
+  Problema: MetodoPago tenia MERCADO_PAGO pero Pago sealed no tenia PagoMercadoPago
+            -> pattern matching switch incompleto
+  Solucion: Agregar PagoMercadoPago record + actualizar 'permits'
+
+BUG 7: UnicodeEncodeError en serve.py en Windows
+  Problema: Caracter -> (U+2192) no soportado por codepage cp1252
+  Solucion: Reemplazar con >> ASCII puro
+
+================================================================================
+  PARA ARRANCAR EL SISTEMA
+================================================================================
+
+1. INSTALAR PostgreSQL 16
+   Descargar: https://www.enterprisedb.com/downloads/postgres-postgresql-downloads
+   Puerto: 5432 | Usuario: postgres | Password: postgres
+   Crear DB: CREATE DATABASE mmotos;
+
+2. BACKEND (CMD nueva, mantener abierta)
+   C:\Java\maven\bin\mvn.cmd spring-boot:run ^
+     -f C:\Users\fabri\Desktop\xavier\skills\AplicacionesJava\MMotosApp\pom.xml
+   Esperar: "Started MMotosApplication in X seconds"
+   Flyway ejecuta V1 + V2 automaticamente
+
+3. FRONTEND (CMD nueva, mantener abierta)
+   cd C:\Users\fabri\Desktop\xavier\skills\AplicacionesJava\MMotosApp\frontend
+   npm run dev            <- con Node (hot reload)
+   O bien: python serve.py  <- con Python (dist compilada)
+
+4. ABRIR BROWSER
+   http://localhost:5173
+   Login: admin / admin123
+
+CREDENCIALES:
+  admin  / admin123  -> rol DUENO  (accede a /api/config/*)
+  cajero / cajero123 -> rol CAJERO
+
+================================================================================
+  PATHS DEL PROYECTO
+================================================================================
+
+Backend Java  : MMotosApp\src\main\java\com\mmotos\
+Frontend React: MMotosApp\frontend\src\
+Migraciones   : MMotosApp\src\main\resources\db\migration\
+Tests         : MMotosApp\src\test\java\com\mmotos\
+Disenios HTML : MMotosApp\Fron-end\
+Java 21       : C:\Java\jdk-21\
+Maven 3.9.9   : C:\Java\maven\
+
+COMANDOS UTILES:
+  mvn -version    : C:\Java\maven\bin\mvn.cmd -version
+  Compilar back   : C:\Java\maven\bin\mvn.cmd clean package -f [ruta]\pom.xml
+  Tests back      : C:\Java\maven\bin\mvn.cmd test
+  Build frontend  : cd frontend && npm run build
+  Dev frontend    : cd frontend && npm run dev
+
+================================================================================

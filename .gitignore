@@ -1,0 +1,39 @@
+# Maven
+target/
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.class
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Logs
+*.log
+logs/
+
+# Env y secretos
+.env
+.env.local
+.env.production.local
+
+# Distribucion portable (JRE + PostgreSQL binarios - no subir)
+distribucion/
+
+# Frontend viejo (prototipos HTML)
+Fron-end/
+
+# Static embebido en JAR (se genera en build)
+src/main/resources/static/
+
+# Archivos generados/temporales
+*.sql
+gen_*.py
+verificar_*.py
+reporte-*.pdf
+facturas-ia-*.pdf

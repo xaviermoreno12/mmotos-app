@@ -1,0 +1,67 @@
+server:
+  port: ${PORT:8090}
+
+spring:
+  application:
+    name: MMotosApp
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mmotos}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:G-x-m-11}      # PROD: usar variable de entorno DB_PASSWORD
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+app:
+  fiscal:
+    # Modos disponibles: NO_FISCAL | AFIP | HASAR
+    modo: NO_FISCAL
+    afip:
+      base-url: https://wsfe.afip.gov.ar/wsfev1/service.asmx
+      timeout-ms: 10000
+      cuit-empresa: ""
+      punto-venta: 1
+    hasar:
+      puerto-serie: COM3
+      baud-rate: 9600
+
+  jwt:
+    secret: ${JWT_SECRET:mmotos-dev-secret-key-32chars-min-not-for-prod}  # PROD: usar variable JWT_SECRET
+    expiration-ms: 86400000
+
+  n8n:
+    webhook-url: ""
+    enabled: false
+
+  telegram:
+    bot-token: ""
+    chat-id: ""
+    enabled: false
+
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    enabled: true
+
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+      - http://localhost:3000
+      - ${CORS_ALLOWED_ORIGIN:}
+
+logging:
+  level:
+    com.mmotos: DEBUG
+    org.springframework.security: WARN

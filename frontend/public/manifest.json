@@ -1,0 +1,17 @@
+{
+  "name": "M MOTOS CORE",
+  "short_name": "MMotos",
+  "description": "Sistema de gestión para autopartes de motos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121414",
+  "theme_color": "#121414",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23121414'/><text y='75' font-size='70' font-family='Arial' font-weight='bold' fill='%23ff5540'>M</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

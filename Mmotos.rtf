@@ -1,0 +1,2300 @@
+{\rtf1\fbidis\ansi\ansicpg1252\deff0\nouicompat\deflang3082{\fonttbl{\f0\fnil\fcharset0 Calibri;}{\f1\fnil Calibri;}{\f2\fnil\fcharset1 Segoe UI Symbol;}{\f3\fnil\fcharset1 Segoe UI Emoji;}{\f4\fnil\fcharset1 Segoe UI Symbol;}{\f5\fnil\fcharset1 Segoe UI Emoji;}}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\f0\fs22\lang10 Entendido. Asumo el rol de **Arquitecto de Software Senior y Especialista en POO**. Mi enfoque no ser\'e1 simplemente "escribir c\'f3digo", sino construir sistemas robustos, mantenibles y t\'e9cnicamente justificados, siguiendo el rigor de una *Software Factory* de alto nivel.\par
+\par
+Para operar bajo este est\'e1ndar, adoptaremos el **Ciclo de Vida de Desarrollo de Software (SDLC)** orientado a objetos, donde el dise\'f1o manda sobre la implementaci\'f3n. Aplicar\'e9 estrictamente los principios **SOLID**, buscar\'e9 la alta cohesi\'f3n y el bajo acoplamiento, y utilizar\'e9 **Patrones de Dise\'f1o (GoF)** para resolver problemas recurrentes.\par
+\par
+---\par
+\par
+### Mi Metodolog\'eda de Trabajo\par
+\par
+Para asegurar el \'e9xito de los proyectos que analicemos, cada intervenci\'f3n se regir\'e1 por la siguiente estructura de pensamiento:\par
+\par
+1. **Abstracci\'f3n y Dominio:** Antes de hablar de bases de datos o frameworks, identificaremos el "Core" del negocio.\par
+2. **Contratos sobre Implementaci\'f3n:** Definiremos interfaces y comportamientos antes que clases concretas.\par
+3. **Evaluaci\'f3n de Trade-offs:** Cada decisi\'f3n arquitect\'f3nica (ej. Monolito vs. Microservicios) vendr\'e1 acompa\'f1ada de sus ventajas y desventajas.\par
+4. **Validaci\'f3n de Dise\'f1o:** Utilizaremos UML para visualizar cuellos de botella en la l\'f3gica de negocio o relaciones circulares antes de tocar el teclado.\par
+\par
+---\par
+\par
+### Herramientas de Modelado\par
+\par
+Para la **Fase 3 (Modelado)**, utilizar\'e9 principalmente **Mermaid.js**, ya que permite una visualizaci\'f3n clara y profesional de:\par
+\par
+* **Diagramas de Clase:** Para estructura y relaciones (Herencia, Composici\'f3n).\par
+* **Diagramas de Secuencia:** Para flujo de mensajes entre objetos y l\'f3gica de APIs.\par
+* **ERD (Entity Relationship Diagrams):** Para el dise\'f1o l\'f3gico de persistencia.\par
+\par
+---\par
+\par
+### \'bfC\'f3mo empezamos?\par
+\par
+Para activar la **FASE 1 \f1\emdash  AN\f0\'c1LISIS DEL PROYECTO**, necesito que me presentes el problema, la idea o el requerimiento inicial.\par
+\par
+**Por favor, ind\'edcame:**\par
+\par
+1. \'bfCu\'e1l es el objetivo principal del sistema?\par
+2. \'bfQui\'e9nes son los actores principales?\par
+3. \'bfExiste alg\'fan desaf\'edo t\'e9cnico espec\'edfico que te preocupe (ej. integraci\'f3n con hardware, alta concurrencia, procesamiento de im\'e1genes)?\par
+\par
+Quedo a la espera de tu primer requerimiento para iniciar el proceso de arquitectura.\par
+\'a1Excelente! Estoy listo para recibir la informaci\'f3n.\par
+\par
+Al ser ambos del ecosistema Java, hablaremos el mismo lenguaje t\'e9cnico. Por favor, comp\'e1rteme los conceptos, requerimientos o diagramas que ya tengas avanzados.\par
+\par
+Una vez que me pases el material, proceder\'e9 a desglosarlo bajo la **FASE 1 (An\'e1lisis)**, donde nos enfocaremos en:\par
+\par
+1. **Objetivo del Sistema.**\par
+2. **Actores y Casos de Uso.**\par
+3. **Requerimientos Funcionales y No Funcionales.**\par
+4. **Escalabilidad y Riesgos.**\par
+\par
+Quedo a la espera. Adelante.\par
+Perfecto, Arnaldo. El documento que presentas es s\'f3lido y demuestra una comprensi\'f3n clara de los desaf\'edos del retail en Argentina (espec\'edficamente la dualidad AFIP/Controlador Fiscal y la inestabilidad econ\'f3mica con el USD).\par
+\par
+Como **Arquitecto Senior**, proceder\'e9 a desglosar esta propuesta bajo la **FASE 1: AN\'c1LISIS DEL PROYECTO**, aplicando un rigor de ingenier\'eda para validar la viabilidad y detectar puntos ciegos.\par
+\par
+---\par
+\par
+## FASE 1 \f1\emdash  AN\f0\'c1LISIS DEL PROYECTO\par
+\par
+### 1.1. Objetivo del Sistema\par
+\par
+Desarrollar una soluci\'f3n **Standalone de alta disponibilidad** para la gesti\'f3n integral de comercios de autopartes, garantizando el cumplimiento fiscal (AFIP/Controladores) y la consistencia de stock en escenarios de conectividad intermitente, con automatizaci\'f3n de reposici\'f3n mediante microservicios de terceros (n8n).\par
+\par
+### 1.2. Identificaci\'f3n de Actores\par
+\par
+1. **Vendedor / Cajero:** Opera el POS, realiza ventas mixtas y emite presupuestos.\par
+2. **Encargado de Dep\'f3sito:** Gestiona ingresos de mercader\'eda, compatibilidades de repuestos y kits.\par
+3. **Administrador / Due\'f1o:** Gestiona precios (D\'f3lar), visualiza m\'e9tricas y configura automatizaciones.\par
+4. **Sistema Externo (AFIP):** Receptor de facturaci\'f3n electr\'f3nica.\par
+5. **Sistema Externo (n8n/Telegram):** Consumidor de alertas de stock.\par
+6. **Hardware Fiscal:** Impresora f\'edsica (Hasar/Epson).\par
+\par
+### 1.3. Requerimientos Funcionales (Principales)\par
+\par
+* **Gesti\'f3n de Inventario Complejo:** Soporte para art\'edculos simples, kits compuestos y trazabilidad de compatibilidad cruzada.\par
+* **Facturaci\'f3n H\'edbrida:** Abstracci\'f3n para conmutar entre Web Service AFIP y Controlador Fiscal f\'edsico.\par
+* **Venta Multimedio:** Capacidad de fragmentar el pago de una transacci\'f3n.\par
+* **Gesti\'f3n de Precios Din\'e1micos:** Recalculado masivo basado en cotizaci\'f3n USD.\par
+* **Sincronizaci\'f3n Diferida:** Capacidad de operar offline (IndexedDB) y sincronizar al recuperar conexi\'f3n.\par
+\par
+### 1.4. Requerimientos No Funcionales (Atributos de Calidad)\par
+\par
+* **Disponibilidad:** El sistema debe facturar aunque no haya internet (v\'eda Controlador Fiscal o CAEA).\par
+* **Portabilidad:** Instalaci\'f3n desatendida "Self-Contained" en Windows.\par
+* **Mantenibilidad:** Desacoplamiento mediante interfaces para cambiar de proveedor fiscal sin tocar el core.\par
+* **Integridad:** No eliminaci\'f3n de registros fiscales (Inmutabilidad contable).\par
+\par
+---\par
+\par
+### 1.5. An\'e1lisis de Escalabilidad y Riesgos T\'e9cnicos\par
+\par
+| Riesgo | Impacto | Estrategia de Mitigaci\'f3n |\par
+| --- | --- | --- |\par
+| **Latencia Serial/USB** | Alto | Implementar comunicaci\'f3n con el hardware fiscal en un hilo (Thread) separado para no bloquear la UI. |\par
+| **Discrepancia de Stock en Kits** | Medio | Uso de transacciones at\'f3micas (ACID) en PostgreSQL para asegurar que el descuento de componentes sea "todo o nada". |\par
+| **Sincronizaci\'f3n Offline** | Alto | Implementar un motor de resoluci\'f3n de conflictos para evitar duplicidad de facturas al re-conectar. |\par
+| **Actualizaci\'f3n de Precios** | Medio | Implementar el patr\'f3n **Observer** para notificar a los m\'f3dulos de venta activos cuando cambie el tipo de cambio. |\par
+\par
+---\par
+\par
+### 1.6. Preguntas Estrat\'e9gicas para el Arquitecto (Necesito tu Feedback)\par
+\par
+Antes de pasar a la **FASE 2 (Arquitectura)**, necesito clarificar estos puntos que afectar\'e1n el dise\'f1o del modelo:\par
+\par
+1. **Compatibilidad Cruzada:** \'bfLa b\'fasqueda de repuestos ser\'e1 jer\'e1rquica (Marca -> Modelo -> A\'f1o) o basada en etiquetas/tags? Esto define si usamos una estructura de \'e1rbol o un motor de b\'fasqueda m\'e1s plano.\par
+2. **Controlador Fiscal:** \'bfManejaremos protocolos de vieja generaci\'f3n (Serie) y nueva generaci\'f3n (Ethernet/JSON)? Esto confirmar\'e1 la necesidad de un patr\'f3n **Adapter**.\par
+3. **Gesti\'f3n de Usuarios:** \'bfNecesit\'e1s niveles de permisos (RBAC) o ser\'e1 una terminal de acceso \'fanico?\par
+4. **Presupuestos:** \'bfDeben tener una fecha de validez que bloquee el precio? (Considerando la volatilidad del d\'f3lar).\par
+\par
+---\par
+\par
+### Diagn\'f3stico Preliminar\par
+\par
+Tu enfoque de **Herencia para Art\'edculos** y **Composici\'f3n para Kits** es correcto desde la POO, pero debemos tener cuidado con la "explosi\'f3n de clases". Sugiero usar el patr\'f3n **Strategy** para el c\'e1lculo de precios en lugar de una herencia r\'edgida, permitiendo cambiar reglas impositivas en tiempo de ejecuci\'f3n sin recompilar.\par
+\par
+**\'bfQu\'e9 opinas de estos puntos? Una vez aclarados, procedo a dise\'f1ar la Arquitectura de Capas y el Diagrama de Clases inicial.**\par
+Gracias por las precisiones, Arnaldo. Con esto cerramos la **FASE 1** con una base t\'e9cnica muy clara. El c\'f3digo que compartiste es un excelente punto de partida, pero como Arquitecto, voy a sugerir un ajuste clave para evitar la "rigidez" de la herencia profunda y ganar flexibilidad en las b\'fasquedas por compatibilidad.\par
+\par
+---\par
+\par
+### 1.7. Refinamiento del An\'e1lisis (Conclusiones de Fase 1)\par
+\par
+#### A. El problema de la Herencia R\'edgida vs. Compatibilidad\par
+\par
+En tu c\'f3digo, `MotorPart` tiene `modeloMotoCompatible`. Pero en la vida real, un mismo repuesto (ej: una buj\'eda o una cadena) puede ser compatible con 20 modelos de motos distintos.\par
+\par
+* **Soluci\'f3n Arquitect\'f3nica:** Desacoplar la **Compatibilidad** de la jerarqu\'eda de clases. Usaremos una relaci\'f3n Many-to-Many entre `Repuesto` y una entidad `ModeloMoto`.\par
+\par
+#### B. Gesti\'f3n de Usuarios y Seguridad\par
+\par
+Implementaremos un esquema de **RBAC (Role-Based Access Control)** simplificado:\par
+\par
+* **Rol CAJA:** Operaciones CRUD est\'e1ndar de venta.\par
+* **Rol DUE\'d1O:** Acceso a m\'e9todos de "Rollback" y anulaci\'f3n de facturas no fiscales.\par
+* **Mecanismo:** El sistema requerir\'e1 un *Security Token* o re-autenticaci\'f3n para acciones cr\'edticas desde una terminal de "Caja".\par
+\par
+#### C. Estrategia de Hardware Fiscal\par
+\par
+Confirmado el uso de **Adapter Pattern**. Crearemos una abstracci\'f3n que oculte si estamos hablando por puerto Serie (Vieja gen) o por JSON/HTTP (Nueva gen).\par
+\par
+---\par
+\par
+## FASE 2 \f1\emdash  ARQUITECTURA\par
+\par
+Para este sistema, propongo una **Arquitectura Hexagonal (Ports & Adapters)** simplificada. \f0\'bfPor qu\'e9? Porque necesitamos que el "Coraz\'f3n" del sistema (Stock y Ventas) sea agn\'f3stico a si la factura se imprime en una Hasar o se env\'eda a AFIP.\par
+\par
+### 2.1. Estructura de Capas (Project Layout)\par
+\par
+| Capa | Responsabilidad |\par
+| --- | --- |\par
+| **Domain (Core)** | Entidades (`Repuesto`, `Venta`) y Reglas de Negocio. No depende de ning\'fan framework. |\par
+| **Application** | Casos de Uso (`RealizarVenta`, `ActualizarPrecioDolar`). Orquestaci\'f3n. |\par
+| **Infrastructure (Out)** | Implementaciones de persistencia (Spring Data JPA), Clientes AFIP y Drivers de Impresoras. |\par
+| **Infrastructure (In)** | Controladores REST (Spring MVC) y Tareas programadas. |\par
+\par
+---\par
+\par
+### 2.2. Tecnolog\'edas y Despliegue\par
+\par
+* **Backend:** Java 21 (LTS) + Spring Boot 3.3.\par
+* **Base de Datos:** PostgreSQL para persistencia robusta.\par
+* **Comunicaci\'f3n Hardware:** Librer\'eda **JSSC** (Java Simple Serial Connector) para los protocolos de vieja generaci\'f3n.\par
+* **Frontend:** React con **Vite** + **Zustand** (Estado liviano) + **IndexedDB** (v\'eda Dexie.js para modo offline).\par
+\par
+---\par
+\par
+## FASE 3 \f1\emdash  MODELADO UML (DIAGRAMA DE CLASES)\par
+\par
+Aqu\f0\'ed es donde transformamos tu idea de herencia en un modelo profesional escalable. Nota c\'f3mo resolvemos la compatibilidad y el c\'e1lculo de precios.\par
+\par
+```mermaid\par
+classDiagram\par
+    class Repuesto \{\par
+        <<abstract>>\par
+        -String sku\par
+        -String nombre\par
+        -Double precioCostoUsd\par
+        -Double stockMinimo\par
+        +calcularPrecioFinal()*\par
+    \}\par
+\par
+    class Neumatico \{\par
+        -String medida\par
+        -String compuesto\par
+        +calcularPrecioFinal()\par
+    \}\par
+\par
+    class KitTransmision \{\par
+        -List~Repuesto~ componentes\par
+        +calcularPrecioFinal()\par
+    \}\par
+\par
+    class ModeloMoto \{\par
+        -String marca\par
+        -String modelo\par
+        -Integer anio\par
+    \}\par
+\par
+    class PrecioService \{\par
+        -Double cotizacionDolar\par
+        +convertirADisplay(Repuesto r)\par
+    \}\par
+\par
+    class ImpresoraFiscal \{\par
+        <<interface>>\par
+        +imprimirTicket(Venta v)\par
+    \}\par
+\par
+    class AdapterHasarOld \{\par
+        +imprimirTicket(Venta v)\par
+    \}\par
+\par
+    class AdapterEpsonNew \{\par
+        +imprimirTicket(Venta v)\par
+    \}\par
+\par
+    Repuesto <|-- Neumatico\par
+    Repuesto <|-- KitTransmision\par
+    Repuesto "n" --> "n" ModeloMoto : compatible_con\par
+    ImpresoraFiscal <|.. AdapterHasarOld\par
+    ImpresoraFiscal <|.. AdapterEpsonNew\par
+    Repuesto ..> PrecioService : usa para visualizaci\'f3n\par
+\par
+```\par
+\par
+---\par
+\par
+## FASE 4 \f1\emdash  DISE\f0\'d1O ORIENTADO A OBJETOS (PATRONES)\par
+\par
+Para que el sistema sea de "Software Factory", aplicaremos:\par
+\par
+1. **Composite Pattern:** Para el `KitTransmision`. Un Kit es un `Repuesto` que contiene otros `Repuestos`. El m\'e9todo `reducirStock()` del Kit disparar\'e1 recursivamente el descuento de sus partes.\par
+2. **Strategy Pattern:** Para el `CalculadorImpuestos`. As\'ed, si ma\'f1ana un neum\'e1tico tiene un impuesto interno nuevo, solo creas una clase nueva sin romper `Repuesto`.\par
+3. **Adapter Pattern:** Para las Impresoras Fiscales (como vimos en el diagrama).\par
+4. **Observer Pattern:** El `StockService` notificar\'e1 al `NotificationService` (n8n/Telegram) cuando un SKU baje del m\'ednimo.\par
+\par
+---\par
+\par
+### 2.3. Riesgos detectados en esta fase\par
+\par
+* **Sincronizaci\'f3n Offline:** Al usar IndexedDB y PostgreSQL, el mayor riesgo es la **colisi\'f3n de IDs**.\par
+* *Decisi\'f3n de Arquitectura:* Usaremos **UUIDs** en lugar de IDs num\'e9ricos autoincrementales para las ventas. Esto permite generar ventas offline sin riesgo de duplicar IDs al subir a la base central.\par
+\par
+\par
+\par
+**\'bfEst\'e1s de acuerdo con pasar a la FASE 5 (Base de Datos) o quer\'e9s profundizar en alg\'fan patr\'f3n de dise\'f1o de la l\'f3gica de Java?**\par
+Excelente, Arnaldo. Tomo tus sugerencias para cerrar la **Fase 2** con precisi\'f3n quir\'fargica.\par
+\par
+Sobre tu duda del punto **3 (Flexibilidad de Clases)**: Como arquitecto, desaconsejo que el usuario "cree clases" program\'e1ticas en tiempo de ejecuci\'f3n (porque requerir\'eda recompilar o un sistema de metadatos extremadamente complejo).\par
+**Mi Criterio:** Usaremos el patr\'f3n **EAV (Entity-Attribute-Value)** o un campo de tipo **JSONB** en PostgreSQL para la clase `RepuestoEspecifico`. Esto permitir\'e1 que el due\'f1o cree "Atributos Din\'e1micos" (ej: Voltaje para electricidad, Amperaje para bater\'edas) desde la interfaz de React sin tocar el c\'f3digo Java.\par
+\par
+Aqu\'ed ten\'e9s la definici\'f3n final de la Arquitectura antes de pasar a la Base de Datos.\par
+\par
+---\par
+\par
+## FASE 2 \f1\emdash  ARQUITECTURA DEFINITIVA\par
+\par
+### 1. Tipo de Arquitectura: **Hexagonal (Ports & Adapters)**\par
+\par
+Elegida por encima de la Monol\f0\'edtica tradicional o Microservicios.\par
+\par
+* **Por qu\'e9:** Necesitamos que el "Negocio" (Ventas/Stock) est\'e9 aislado del Hardware (Impresoras) y de la AFIP. Si ma\'f1ana AFIP cambia su API o el cliente compra una impresora t\'e9rmica com\'fan, solo cambiamos un "Adapter" y el n\'facleo del sistema sigue intacto.\par
+\par
+### 2. Estructura del Proyecto y Capas\par
+\par
+El proyecto se organizar\'e1 en un monorepositorio con una estructura de paquetes clara:\par
+\par
+```text\par
+com.autopartes.motos\par
+\f2\u9500?\u9472?\u9472?\f1  \f0 domain (Core)\par
+\f2\u9474?\f1    \f2\u9500?\u9472?\u9472?\f1  \f0 model          <- Entidades puras (Repuesto, Venta, Cliente)\par
+\f2\u9474?\f1    \f2\u9500?\u9472?\u9472?\f1  \f0 service        <- L\'f3gica de negocio (CalculadorPrecio, ValidadorStock)\par
+\f2\u9474?\f1    \f2\u9492?\u9472?\u9472?\f1  \f0 repository     <- Interfaces (Puertos de salida)\par
+\f2\u9500?\u9472?\u9472?\f1  \f0 application (Casos de Uso)\par
+\f2\u9474?\f1    \f2\u9500?\u9472?\u9472?\f1  \f0 dto            <- Data Transfer Objects (Request/Response)\par
+\f2\u9474?\f1    \f2\u9492?\u9472?\u9472?\f1  \f0 usecase        <- Orquestadores (RealizarVentaUseCase)\par
+\f2\u9492?\u9472?\u9472?\f1  \f0 infrastructure (Adaptadores)\par
+\f1     \f2\u9500?\u9472?\u9472?\f1  \f0 input\par
+\f1     \f2\u9474?\f1    \f2\u9492?\u9472?\u9472?\f1  \f0 rest       <- Controladores Spring (React consume aqu\'ed)\par
+\f1     \f2\u9492?\u9472?\u9472?\f1  \f0 output\par
+\f1         \f2\u9500?\u9472?\u9472?\f1  \f0 persistence <- Implementaci\'f3n PostgreSQL (JPA/Hibernate)\par
+\f1         \f2\u9500?\u9472?\u9472?\f1  \f0 fiscal      <- Adaptadores Hasar, Epson, AFIP\par
+\f1         \f2\u9492?\u9472?\u9472?\f1  \f0 external    <- Cliente n8n / Telegram\par
+\par
+```\par
+\par
+### 3. Flujo de Datos\par
+\par
+1. **Entrada:** React (Frontend) env\'eda un JSON con la venta.\par
+2. **Procesamiento:** El Controlador recibe el DTO -> Lo pasa al Caso de Uso -> El Dominio valida stock y calcula precios (aplicando l\'f3gica de D\'f3lar).\par
+3. **Persistencia:** Se guarda en **PostgreSQL Local** (ACID para asegurar que el stock baje correctamente).\par
+4. **Salida T\'e9cnica:** Se dispara el puerto de `ImpresionFiscal`. El adaptador detecta si es `HasarSerial` o `AFIP_WS` y ejecuta la acci\'f3n.\par
+5. **Notificaci\'f3n:** Si el stock es bajo, se dispara un evento as\'edncrono hacia n8n.\par
+\par
+### 4. Tecnolog\'edas Recomendadas (Tu Criterio + El m\'edo)\par
+\par
+* **Backend:** Java 21 + Spring Boot 3.3 (Web, Data JPA, Validation).\par
+* **Base de Datos:** **PostgreSQL 16 (Local)**. *Nota: Eleg\'ed Postgres sobre MySQL por su excelente manejo de tipos JSONB para esos "campos din\'e1micos" que mencionaste.*\par
+* **Frontend:**\par
+* **React + Vite:** Para velocidad de desarrollo.\par
+* **Tailwind CSS:** Para un dise\'f1o r\'e1pido y responsive.\par
+* **TanStack Query (React Query):** **Indispensable.** Maneja el cach\'e9 de los repuestos y facilita la sincronizaci\'f3n cuando el backend vuelve a estar online.\par
+\par
+\par
+* **Hardware:** **JSSC** para comunicaci\'f3n directa con puertos COM/USB.\par
+\par
+### 5. Buenas Pr\'e1cticas y Reglas de Oro\par
+\par
+* **Inmutabilidad:** Las Facturas no se modifican. Se anulan con Notas de Cr\'e9dito.\par
+* **Fail-Safe:** Si la impresora fiscal falla, la transacci\'f3n en la DB debe hacer `Rollback` o quedar en estado "Error de Impresi\'f3n" para no perder consistencia.\par
+* **Stateless Backend:** El servidor de Spring Boot no guarda sesi\'f3n; usamos JWT para que, si se reinicia la app, el usuario no pierda el contexto (aunque al ser local, el riesgo es menor).\par
+\par
+---\par
+\par
+### Responsabilidades por M\'f3dulo\par
+\par
+| M\'f3dulo | Responsabilidad Principal |\par
+| --- | --- |\par
+| **CatalogModule** | B\'fasqueda por \'e1rbol (Marca > Tipo > Modelo) y gesti\'f3n de atributos din\'e1micos. |\par
+| **SalesModule** | Gesti\'f3n de transacciones, pagos mixtos y estados fiscales. |\par
+| **StockModule** | Control de existencias, kits y alertas de reposici\'f3n. |\par
+| **FiscalModule** | Abstracci\'f3n total del hardware y Web Services de AFIP. |\par
+\par
+---\par
+\par
+**\'bfConfirmamos esta arquitectura para proceder a la FASE 5 \f1\emdash  DISE\f0\'d1O DE BASE DE DATOS?** *Aqu\'ed dise\'f1aremos las tablas, las relaciones Many-to-Many de compatibilidad y la estructura JSONB para los atributos din\'e1micos.*\par
+Excelente, Arnaldo. Con esto cerramos el c\'edrculo de la **FASE 2**. La integraci\'f3n de **n8n + OpenAI** para la actualizaci\'f3n de precios le da un nivel de modernidad y eficiencia incre\'edble, eliminando la carga manual tediosa pero manteniendo la flexibilidad de modificar a mano cuando sea necesario.\par
+\par
+### Feedback Final de Arquitectura (Fase 2 - Cierre)\par
+\par
+1. **Robustez Fiscal:** El "Rollback" se dise\'f1ar\'e1 a nivel de aplicaci\'f3n. Si el adaptador de AFIP/Controlador devuelve un error, la transacci\'f3n de base de datos no se confirma, asegurando que no existan ventas "fantasma" que resten stock sin tener comprobante legal.\par
+2. **Precios Din\'e1micos:** El sistema expondr\'e1 un **Endpoint de Actualizaci\'f3n Masiva** (Webhook) que recibir\'e1 el JSON procesado por tu IA. El `CatalogModule` validar\'e1 estos datos antes de impactar en la base de datos local.\par
+3. **Atributos Din\'e1micos:** Confirmado el uso de **JSONB en PostgreSQL** para `RepuestoEspecifico`. Esto nos permite guardar `\{"voltaje": "12v", "amperaje": "9ah"\}` sin cambiar la estructura de la tabla cada vez que agregues una categor\'eda nueva.\par
+4. **Arquitectura Hexagonal:** Queda validada. El "Dominio" ser\'e1 el lugar m\'e1s seguro y estable de tu c\'f3digo.\par
+\par
+---\par
+\par
+## FASE 5 \f1\emdash  DISE\f0\'d1O DE BASE DE DATOS\par
+\par
+Como Arquitecto, dise\'f1ar\'e9 una estructura **Normalizada** en sus tablas base, pero **H\'edbrida** (SQL + JSON) para la flexibilidad de los repuestos.\par
+\par
+### 5.1. Esquema de Entidades (ERD)\par
+\par
+A continuaci\'f3n, presento la estructura de tablas principal enfocada en la escalabilidad y las relaciones Many-to-Many que acordamos:\par
+\par
+```mermaid\par
+erDiagram\par
+    PRODUCTO ||--o\{ PRODUCTO_COMPATIBILIDAD : tiene\par
+    MODELO_MOTO ||--o\{ PRODUCTO_COMPATIBILIDAD : aplica_a\par
+    PRODUCTO ||--o\{ KIT_COMPONENTE : contiene\par
+    PRODUCTO ||--o\{ VENTA_DETALLE : incluye\par
+    VENTA ||--o\{ VENTA_DETALLE : posee\par
+    VENTA ||--o\{ PAGO_METODO : se_paga_con\par
+    USUARIO ||--o\{ VENTA : registra\par
+\par
+    PRODUCTO \{\par
+        uuid id PK\par
+        string sku\par
+        string nombre\par
+        decimal precio_costo\par
+        decimal precio_venta\par
+        jsonb atributos_especificos\par
+        int stock_actual\par
+        int stock_minimo\par
+        string tipo_producto "NEUMATICO, LUBRICANTE, ELECTRICIDAD, etc"\par
+    \}\par
+\par
+    MODELO_MOTO \{\par
+        uuid id PK\par
+        string marca\par
+        string modelo\par
+        int anio_desde\par
+        int anio_hasta\par
+    \}\par
+\par
+    VENTA \{\par
+        uuid id PK\par
+        timestamp fecha\par
+        string nro_comprobante\par
+        string estado_fiscal "PENDIENTE, EMITIDO, ERROR"\par
+        uuid usuario_id FK\par
+        decimal total\par
+    \}\par
+\par
+    PAGO_METODO \{\par
+        uuid id PK\par
+        uuid venta_id FK\par
+        string tipo "EFECTIVO, TRANSFERENCIA, TARJETA"\par
+        decimal monto\par
+    \}\par
+\par
+```\par
+\par
+### 5.2. Puntos Clave del Dise\'f1o de Datos\par
+\par
+1. **Tabla `PRODUCTO_COMPATIBILIDAD`:** Es la tabla intermedia (Join Table) que permite que un "Filtro de Aceite" (Producto) est\'e9 vinculado a "Honda Wave", "Yamaha YBR" y "Gilera Smash" (Modelos) simult\'e1neamente.\par
+2. **Tabla `KIT_COMPONENTE`:** Relaci\'f3n recursiva (un Producto compuesto por otros Productos). Fundamental para el descuento de stock en cascada.\par
+3. **Campo `atributos_especificos` (JSONB):** Aqu\'ed guardaremos los datos que el due\'f1o defina para "Electricidad", "Motor", etc., permitiendo b\'fasquedas por atributos internos del JSON.\par
+4. **\'cdndices (Performance):** * \'cdndice GIN sobre el campo JSONB para b\'fasquedas r\'e1pidas por atributos.\par
+* \'cdndice B-Tree sobre `sku` y `nombre` para el buscador del frontend.\par
+\par
+\par
+\par
+### 5.3. Integridad Fiscal\par
+\par
+* **Unique Constraint:** El `nro_comprobante` junto con el `punto_venta` ser\'e1n \'fanicos para evitar duplicidad ante la AFIP.\par
+* **Soft Delete:** No borraremos productos ni ventas; usaremos una columna `activo` (boolean) para mantener el hist\'f3rico contable intacto.\par
+\par
+---\par
+\par
+### \'bfC\'f3mo lo ves?\par
+\par
+Si el dise\'f1o de la base de datos te parece correcto, podemos dar por iniciada la **FASE 6 \f1\emdash  IMPLEMENTACI\f0\'d3N**, empezando por la estructura del proyecto en Java y la definici\'f3n de la clase abstracta `Repuesto` y sus implementaciones con el manejo de JSONB.\par
+\par
+**\'bfQuer\'e9s ajustar algo del modelo de datos o pasamos a los primeros bloques de c\'f3digo Java 21?**\par
+\par
+Excelente observaci\'f3n, Arnaldo. El manejo de "Tickets no v\'e1lidos como factura" (com\'fanmente llamados preventas o comandas) es vital en el retail para no detener la operaci\'f3n y mantener el stock real sincronizado, independientemente de la burocracia fiscal.\par
+\par
+Entramos oficialmente en la **FASE 3 \f1\emdash  MODELADO UML**. Aqu\f0\'ed vamos a "dibujar" los planos antes de levantar las paredes.\par
+\par
+---\par
+\par
+### 3.1. Diagrama de Casos de Uso (Actores y Funcionalidades)\par
+\par
+Este diagrama define los l\'edmites del sistema y qu\'e9 puede hacer cada actor.\par
+\par
+```mermaid\par
+useCaseDiagram\par
+    actor "Vendedor/Caja" as Caja\par
+    actor "Due\'f1o/Admin" as Dueno\par
+    actor "Sistema AFIP" as AFIP\par
+    actor "Bot n8n/AI" as n8n\par
+\par
+    package "Sistema Gesti\'f3n Motos" \{\par
+        usecase "Realizar Venta (Fiscal/No Fiscal)" as UC_Venta\par
+        usecase "Gestionar Stock y Kits" as UC_Stock\par
+        usecase "Anular Venta (Nota de Cr\'e9dito)" as UC_Anular\par
+        usecase "Actualizar Precios (Manual/Autom\'e1tico)" as UC_Precios\par
+        usecase "Consultar Compatibilidad" as UC_Busqueda\par
+    \}\par
+\par
+    Caja --> UC_Venta\par
+    Caja --> UC_Busqueda\par
+    \par
+    Dueno --> UC_Anular\par
+    Dueno --> UC_Precios\par
+    Dueno --> UC_Stock\par
+    \par
+    UC_Venta ..> AFIP : <<extend>> Si es Fiscal\par
+    n8n --> UC_Precios : Webhook\par
+    UC_Stock ..> n8n : Alerta Stock Bajo\par
+\par
+```\par
+\par
+---\par
+\par
+### 3.2. Diagrama de Clases (Dise\'f1o Orientado a Objetos)\par
+\par
+Aqu\'ed aplicamos la **Herencia**, la **Composici\'f3n** (para los Kits) y el **Polimorfismo** que discutimos.\par
+\par
+```mermaid\par
+classDiagram\par
+    class Repuesto \{\par
+        <<abstract>>\par
+        -UUID id\par
+        -String sku\par
+        -String nombre\par
+        -Double precioVenta\par
+        -Integer stockActual\par
+        -JsonNode atributosExtra\par
+        +descontarStock(int cantidad)*\par
+    \}\par
+\par
+    class RepuestoSimple \{\par
+        +descontarStock(int cantidad)\par
+    \}\par
+\par
+    class KitTransmision \{\par
+        -List~Repuesto~ componentes\par
+        +descontarStock(int cantidad)\par
+    \}\par
+\par
+    class Compatibilidad \{\par
+        -String marca\par
+        -String modelo\par
+        -Integer anio\par
+    \}\par
+\par
+    class EstrategiaFiscal \{\par
+        <<interface>>\par
+        +emitirComprobante(Venta v)\par
+    \}\par
+\par
+    class AdaptadorAFIP \{\par
+        +emitirComprobante(Venta v)\par
+    \}\par
+\par
+    class AdaptadorNoFiscal \{\par
+        +emitirComprobante(Venta v)\par
+    \}\par
+\par
+    Repuesto <|-- RepuestoSimple\par
+    Repuesto <|-- KitTransmision\par
+    Repuesto "n" o-- "n" Compatibilidad : aplica_a\par
+    KitTransmision "1" *-- "n" Repuesto : compuesto_por\par
+    VentaService --> EstrategiaFiscal : usa\par
+    EstrategiaFiscal <|.. AdaptadorAFIP\par
+    EstrategiaFiscal <|.. AdaptadorNoFiscal\par
+\par
+```\par
+\par
+---\par
+\par
+### 3.3. Diagrama de Secuencia: Realizar Venta y Rollback\par
+\par
+Este es el flujo cr\'edtico que mencionaste. Muestra qu\'e9 pasa si la impresora o AFIP fallan.\par
+\par
+```mermaid\par
+sequenceDiagram\par
+    participant U as Usuario/Caja\par
+    participant S as VentaService (Core)\par
+    participant DB as PostgreSQL\par
+    participant F as AdaptadorFiscal (Port)\par
+    participant H as Hardware/AFIP\par
+\par
+    U->>S: Confirmar Venta (Items, MetodosPago)\par
+    S->>DB: Iniciar Transacci\'f3n\par
+    S->>DB: Validar y Descontar Stock\par
+    \par
+    alt Es Venta Fiscal\par
+        S->>F: Solicitar Comprobante\par
+        F->>H: Comunicaci\'f3n (Serie/Web Service)\par
+        alt Error de Comunicaci\'f3n\par
+            H-->>F: Timeout / Error\par
+            F-->>S: Throw FiscalException\par
+            S->>DB: ROLLBACK (Stock vuelve a la normalidad)\par
+            S-->>U: Error: "No se pudo emitir, stock intacto"\par
+        else \'c9xito\par
+            H-->>F: CAE / Nro Ticket\par
+            F-->>S: Datos Fiscales\par
+            S->>DB: Registrar Venta y COMMIT\par
+            S-->>U: Venta Exitosa\par
+        end\par
+    else Es Venta No Fiscal (Ticket Interno)\par
+        S->>DB: Registrar Venta (Estado: No Fiscal)\par
+        S->>DB: COMMIT\par
+        S-->>U: Ticket Impreso (No Fiscal)\par
+    end\par
+\par
+```\par
+\par
+---\par
+\par
+### 3.4. An\'e1lisis de Relaciones (Arquitecto Senior)\par
+\par
+1. **Composici\'f3n (Kits):** He modelado el `KitTransmision` usando el patr\'f3n **Composite**. Cuando el `VentaService` pide descontar 1 unidad del "Kit", el objeto Kit se encarga de iterar sus componentes y llamar a `descontarStock()` en cada uno. Esto garantiza integridad.\par
+2. **Agregaci\'f3n (Compatibilidad):** Los modelos de moto no "mueren" si el repuesto se borra. Es una relaci\'f3n d\'e9bil (Agregaci\'f3n) que permite reutilizar los modelos en todo el cat\'e1logo.\par
+3. **Interfaz (EstrategiaFiscal):** Aqu\'ed es donde resolvemos tu pedido: el sistema no sabe si est\'e1 emitiendo una factura legal o un ticket de control interno hasta el momento de la ejecuci\'f3n. Simplemente llama al m\'e9todo `emitirComprobante()`.\par
+\par
+---\par
+\par
+### Diagn\'f3stico de Fase 3\par
+\par
+Los diagramas cubren la **l\'f3gica de negocio**, el **comportamiento ante errores** y la **estructura de datos flexible**.\par
+\par
+**\'bfEstamos listos para pasar a la FASE 5 (Base de Datos - Detalle T\'e9cnico SQL) o hay alg\'fan flujo de actividad (Diagrama de Actividad) que quieras que detallemos m\'e1s, por ejemplo, el proceso de actualizaci\'f3n v\'eda n8n?**\par
+Excelente feedback, Arnaldo. Como Arquitecto, acepto y agradezco estas incorporaciones; demuestran una visi\'f3n de **experiencia en el terreno**. Tienes toda la raz\'f3n: en Argentina, un sistema que no maneja **Precio como Value Object** y **L\'edneas de Venta con Hist\'f3rico** est\'e1 destinado al fracaso contable.\par
+\par
+He integrado tus observaciones para completar la **FASE 3**. Vamos a consolidar el **Diagrama de Clases Definitivo** y los **Diagramas de Secuencia Cr\'edticos** que mencionaste.\par
+\par
+---\par
+\par
+### 3.2. Diagrama de Clases Definitivo (Versi\'f3n "Anti-Martes 13")\par
+\par
+Este modelo ahora incluye la persistencia offline, la gesti\'f3n de moneda y la ubicaci\'f3n f\'edsica.\par
+\par
+```mermaid\par
+classDiagram\par
+    class Repuesto \{\par
+        -UUID id\par
+        -String sku\par
+        -String nombre\par
+        -Ubicacion ubicacion\par
+        -Integer stockActual\par
+        -Integer stockMinimo\par
+        +descontarStock(int cant)\par
+    \}\par
+\par
+    class Precio \{\par
+        <<Value Object>>\par
+        -Double valorBase\par
+        -Moneda moneda\par
+        -LocalDateTime ultimaActualizacion\par
+        +Double getPrecioEnPesos(Double cotizacion)\par
+    \}\par
+\par
+    class Venta \{\par
+        -UUID id\par
+        -LocalDateTime fecha\par
+        -EstadoVenta estado\par
+        -SyncStatus syncStatus\par
+        +totalizar()\par
+    \}\par
+\par
+    class LineaVenta \{\par
+        -Integer cantidad\par
+        -Double precioUnitarioHistorico\par
+        -Double subtotal\par
+    \}\par
+\par
+    class Pago \{\par
+        <<abstract>>\par
+        -Double monto\par
+    \}\par
+\par
+    class PagoTarjeta \{\par
+        -String cupon\par
+        -Integer cuotas\par
+    \}\par
+\par
+    class Ubicacion \{\par
+        -String estanteria\par
+        -String fila\par
+    \}\par
+\par
+    class SyncLog \{\par
+        -UUID entidadId\par
+        -String tipoEntidad\par
+        -Boolean sincronizado\par
+        -Integer intentos\par
+    \}\par
+\par
+    %% Relaciones\par
+    Repuesto "1" *-- "1" Precio\par
+    Repuesto "1" --> "1" Ubicacion\par
+    Venta "1" *-- "n" LineaVenta\par
+    Venta "1" *-- "n" Pago\par
+    Venta "1" -- "1" SyncLog : monitoreada_por\par
+    LineaVenta "n" --> "1" Repuesto\par
+    Pago <|-- PagoTarjeta\par
+    Pago <|-- PagoEfectivo\par
+    Pago <|-- PagoTransferencia\par
+\par
+```\par
+\par
+---\par
+\par
+### 3.3. Nuevos Diagramas de Secuencia Clave\par
+\par
+#### A. Sincronizaci\'f3n Post-Offline (Re-Sync)\par
+\par
+Este flujo asegura que lo que se vendi\'f3 "sin WiFi" impacte correctamente en el servidor central y en la AFIP cuando vuelve la conexi\'f3n.\par
+\par
+```mermaid\par
+sequenceDiagram\par
+    participant PWA as Frontend (IndexedDB)\par
+    participant SYNC as SyncManager (Worker)\par
+    participant BE as Backend (Spring Boot)\par
+    participant AFIP as WebService AFIP\par
+\par
+    PWA->>SYNC: Evento "Online Detected"\par
+    SYNC->>PWA: Obtener Ventas con SyncStatus = PENDING\par
+    loop Por cada Venta Offline\par
+        SYNC->>BE: POST /api/ventas/sync (Venta Data)\par
+        BE->>BE: Validar Integridad\par
+        BE->>AFIP: Solicitar CAE (Factura Electr\'f3nica)\par
+        AFIP-->>BE: CAE + Vencimiento\par
+        BE->>BE: Guardar en DB Local Central\par
+        BE-->>SYNC: 201 Created + Datos Fiscales\par
+        SYNC->>PWA: Update Venta (SyncStatus = SYNCED)\par
+    end\par
+    SYNC-->>PWA: Notificar "Sincronizaci\'f3n Completa"\par
+\par
+```\par
+\par
+#### B. Actualizaci\'f3n Masiva por Cotizaci\'f3n D\'f3lar\par
+\par
+Este proceso debe ser eficiente. No actualizamos fila por fila en la DB si hay miles; usamos el **Precio como objeto** para el c\'e1lculo din\'e1mico.\par
+\par
+```mermaid\par
+sequenceDiagram\par
+    participant U as Usuario/n8n\par
+    participant PS as PrecioService\par
+    participant CACHE as Redis/LocalCache\par
+    participant DB as PostgreSQL\par
+\par
+    U->>PS: Actualizar Cotizaci\'f3n (Ej: 1 USD = 1100 ARS)\par
+    PS->>DB: UPDATE configuracion SET valor = 1100 WHERE clave = 'DOLAR_HOY'\par
+    PS->>CACHE: Evict "precios_pesos" (Invalidar cach\'e9)\par
+    PS->>PS: Disparar evento "PriceChanged"\par
+    PS-->>U: Confirmaci\'f3n: "Precios actualizados en todo el sistema"\par
+    Note over PS: El c\'e1lculo final se hace al vuelo o al renderizar en el POS.\par
+\par
+```\par
+\par
+---\par
+\par
+### 3.4. Diagrama de Actividad: Venta con Pago Mixto y Alerta de Stock\par
+\par
+Este diagrama muestra la l\'f3gica de decisi\'f3n cuando un cliente paga con dos medios distintos.\par
+\par
+```mermaid\par
+stateDiagram-v2\par
+    [*] --> SeleccionarProductos\par
+    SeleccionarProductos --> TotalizarVenta\par
+    TotalizarVenta --> IngresarPago1\par
+    IngresarPago1 --> VerificarSaldo\par
+    VerificarSaldo --> IngresarPago2 : Saldo > 0\par
+    VerificarSaldo --> ProcesarFiscal : Saldo == 0\par
+    \par
+    state ProcesarFiscal \{\par
+        [*] --> TipoComprobante\par
+        TipoComprobante --> AFIP : Fiscal\par
+        TipoComprobante --> Interno : No Valido Factura\par
+    \}\par
+    \par
+    ProcesarFiscal --> DescontarStock\par
+    DescontarStock --> VerificarPuntoReposicion\par
+    \par
+    state VerificarPuntoReposicion \{\par
+        [*] --> StockBajo : Si\par
+        StockBajo --> n8n_Webhook : Disparar Alerta\par
+        StockBajo --> [*]\par
+        [*] --> [*] : No\par
+    \}\par
+    \par
+    DescontarStock --> FinalizarVenta\par
+    FinalizarVenta --> [*]\par
+\par
+```\par
+\par
+---\par
+\par
+### Diagn\'f3stico de Arquitecto (Cierre Fase 3)\par
+\par
+Con la inclusi\'f3n de **SyncLog**, **LineaVenta (Hist\'f3rica)** y el **Value Object Precio**, el sistema ha pasado de ser un "proyecto de estudio" a una **arquitectura de grado comercial**.\par
+\par
+**Riesgo mitigado:** Al tener el `SyncLog`, evitamos que una ca\'edda de luz o internet nos deje con la duda de "se mand\'f3 o no se mand\'f3 a AFIP".\par
+\par
+**\'bfDamos por finalizada la Fase 3 y pasamos a la FASE 5 - DISE\'d1O DE BASE DE DATOS (F\'edsico)?** *Aqu\'ed definiremos los tipos de datos exactos de Postgres, los \'edndices GIN para el JSONB y las tablas de auditor\'eda.*\line\line Perfecto, Arnaldo. Entramos en la **FASE 4: DISE\'d1O ORIENTADO A OBJETOS**. Tras haber definido la arquitectura y el modelo UML en las fases previas, ahora vamos a "bajar a tierra" las reglas de dise\'f1o que garantizar\'e1n que el c\'f3digo sea flexible, testeable y resistente al cambio.\par
+\par
+En esta etapa, aplicaremos los principios **SOLID** y seleccionaremos los **Patrones de Dise\'f1o** que resolver\'e1n los retos espec\'edficos de tu negocio de autopartes (precios din\'e1micos, hardware fiscal y pagos mixtos).\par
+\par
+---\par
+\par
+## 4.1. Aplicaci\'f3n de Principios SOLID\par
+\par
+### S - Single Responsibility (Responsabilidad \'danica)\par
+\par
+Evitaremos las "Clases Dios".\par
+\par
+* **Ejemplo:** La clase `Venta` no sabr\'e1 c\'f3mo imprimirse ni c\'f3mo comunicarse con AFIP. Solo gestionar\'e1 sus `LineasDeVenta` y `Pagos`. La l\'f3gica de impresi\'f3n recaer\'e1 en un `FiscalAdapter`.\par
+\par
+### O - Open/Closed (Abierto/Cerrado)\par
+\par
+El sistema debe estar abierto a la extensi\'f3n pero cerrado a la modificaci\'f3n.\par
+\par
+* **Ejemplo:** Si ma\'f1ana incorporas un nuevo medio de pago (ej. Cripto), no modificaremos la clase `Venta`. Simplemente crearemos una nueva clase `PagoCripto` que extienda de `Pago`.\par
+\par
+### L - Liskov Substitution (Sustituci\'f3n de Liskov)\par
+\par
+Cualquier subclase de `Repuesto` debe poder usarse sin romper el sistema.\par
+\par
+* **Ejemplo:** Un `KitTransmision` debe comportarse como un `Repuesto` a ojos del carrito de compras, aunque internamente gestione m\'faltiples piezas.\par
+\par
+### I - Interface Segregation (Segregaci\'f3n de Interfaces)\par
+\par
+No obligaremos a las clases a implementar m\'e9todos que no usan.\par
+\par
+* **Ejemplo:** Crearemos `Interface ConsultableAfip` solo para los adaptadores que realmente requieren validaci\'f3n online, separ\'e1ndolos de los controladores fiscales f\'edsicos que son offline.\par
+\par
+### D - Dependency Inversion (Inversi\'f3n de Dependencias)\par
+\par
+Los m\'f3dulos de alto nivel (Ventas) no depender\'e1n de los de bajo nivel (Driver de Epson). Ambos depender\'e1n de abstracciones (`ServiceFiscal`).\par
+\par
+---\par
+\par
+## 4.2. Selecci\'f3n de Patrones de Dise\'f1o (GoF)\par
+\par
+Para este sistema, he seleccionado los siguientes patrones estrat\'e9gicos:\par
+\par
+### 1. Patr\'f3n Strategy (Para el M\'f3dulo Fiscal)\par
+\par
+**Problema:** Necesitamos alternar entre Factura Electr\'f3nica, Controlador Fiscal o Ticket No Fiscal.\par
+**Soluci\'f3n:** Definimos una interfaz `EstrategiaFiscal` con el m\'e9todo `emitir()`. Cada adaptador (`AfipStrategy`, `HasarStrategy`, `NoFiscalStrategy`) implementar\'e1 su propia l\'f3gica.\par
+\par
+### 2. Patr\'f3n Composite (Para la Gesti\'f3n de Kits)\par
+\par
+**Problema:** Un "Kit de Transmisi\'f3n" es un producto, pero contiene otros productos (cadena, pi\'f1\'f3n, corona).\par
+**Soluci\'f3n:** `Repuesto` es la clase base. `RepuestoSimple` y `KitTransmision` la heredan. El `Kit` tiene una lista de `Repuestos`. Al llamar a `descontarStock()`, el Kit lo propaga a sus hijos.\par
+\par
+### 3. Patr\'f3n Observer (Para Alertas y n8n)\par
+\par
+**Problema:** Cuando el stock baja, varias cosas deben ocurrir (aviso a n8n, alerta en UI).\par
+**Soluci\'f3n:** El `StockService` act\'faa como el *Subject*. El `NotificationService` se suscribe. Al detectar stock bajo, notifica a todos los observadores sin que el `StockService` sepa que existe n8n.\par
+\par
+### 4. Patr\'f3n Factory / Builder (Para la Creaci\'f3n de Ventas)\par
+\par
+**Problema:** Crear una `Venta` con pagos mixtos y m\'faltiples \'edtems puede ser complejo.\par
+**Soluci\'f3n:** Usaremos `VentaBuilder` para construir el objeto paso a paso, asegurando que la venta sea v\'e1lida antes de persistirla.\par
+\par
+### 5. Patr\'f3n Adapter (Para el Hardware)\par
+\par
+**Problema:** Los protocolos de las impresoras Hasar (vieja gen) y Epson (nueva gen) son totalmente distintos.\par
+**Soluci\'f3n:** Crearemos adaptadores que traduzcan nuestro objeto `Venta` al protocolo espec\'edfico de cada hardware.\par
+\par
+---\par
+\par
+## 4.3. Detecci\'f3n y Resoluci\'f3n de Code Smells\par
+\par
+| Code Smell Detectado | Soluci\'f3n de Arquitecto |\par
+| --- | --- |\par
+| **Data Clumps:** SKU, Nombre y Precio siempre viajan juntos. | Crear el objeto `ArticuloInfo` para encapsular estos datos. |\par
+| **Switch Statements:** Muchos `if (tipo == 'FISCAL')` en el c\'f3digo. | Reemplazar por **Polimorfismo** usando el patr\'f3n Strategy. |\par
+| **Primitive Obsession:** Usar `Double` para precios en USD/ARS. | Implementar el Value Object `Precio` (visto en Fase 3) para manejar la l\'f3gica de conversi\'f3n. |\par
+\par
+---\par
+\par
+## 4.4. Dise\'f1o de Abstracciones (Java 21)\par
+\par
+Propongo el uso de **Sealed Interfaces** (introducidas en Java 17/21) para tener un control estricto sobre la jerarqu\'eda de pagos y repuestos, aprovechando el *Pattern Matching*.\par
+\par
+### Ejemplo de Dise\'f1o de Composici\'f3n sobre Herencia:\par
+\par
+En lugar de que `Repuesto` tenga toda la l\'f3gica de "Compatibilidad", crearemos un componente `CompatibilidadMotor` que se inyecte solo a los repuestos que lo necesiten. Esto evita que un "Aceite" herede m\'e9todos de "Modelo de Moto" que no le corresponden.\par
+\par
+---\par
+\par
+## 4.5. Justificaci\'f3n T\'e9cnica\par
+\par
+He decidido priorizar la **Composici\'f3n sobre la Herencia** en el caso de las categor\'edas de productos. Si bien `Neumatico` hereda de `Repuesto`, los atributos extra (medidas, compuesto) se manejar\'e1n en el mapa de **Atributos Din\'e1micos** para permitir que el usuario defina nuevas categor\'edas (ej. "Indumentaria") sin que nosotros tengamos que crear nuevas clases en Java y recompilar el sistema.\par
+\par
+---\par
+\par
+**\'bfDamos por aprobada la Fase 4 de Dise\'f1o Orientado a Objetos para proceder a la FASE 5 (Base de Datos - Detalle F\'edsico) donde definiremos el esquema SQL final?**\par
+Tus observaciones son de un nivel de **Seniority** absoluto. Esas recomendaciones no est\'e1n en los libros, est\'e1n en la experiencia de haber resuelto incidentes en producci\'f3n. Integrar estas validaciones en la **Fase 4** nos garantiza que el sistema sea a prueba de fallos operativos y fiscales.\par
+\par
+Como tu Arquitecto, tomo estas recomendaciones y las formalizo en el dise\'f1o antes de pasar a la Base de Datos.\par
+\par
+---\par
+\par
+### 4.6. Refinamiento del Dise\'f1o OO (Anti-Errores)\par
+\par
+#### 1. Builder con Estado y Validaci\'f3n Fiscal\par
+\par
+No usaremos un Builder simple de Lombok. Implementaremos un **Builder Manual** con l\'f3gica de validaci\'f3n de negocio.\par
+\par
+* **Implementaci\'f3n:** El m\'e9todo `build()` disparar\'e1 un `ValidationContext`.\par
+* **Regla:** Si `tipoFactura == 'A'` y `cliente.cuit == null`, lanzar\'e1 una `IllegalStateException`.\par
+* **Regla:** Si `Math.abs(totalItems - totalPagos) > 0.01`, lanzar\'e1 `BalanceInconsistencyException`.\par
+\par
+#### 2. Estrategia de Hardware "Pre-Flight Check"\par
+\par
+Para evitar el "descuento de stock sin ticket f\'edsico" por falta de papel o desconexi\'f3n, modificamos el contrato del **Adapter**:\par
+\par
+```java\par
+public interface FiscalAdapter \{\par
+    boolean isHardwareReady(); // Chequeo de papel, energ\'eda, conexi\'f3n\par
+    FiscalResponse emitir(Venta venta);\par
+\}\par
+\par
+```\par
+\par
+**Flujo de Transacci\'f3n:**\par
+\par
+1. `VentaBuilder.build()` (Valida l\'f3gica).\par
+2. `FiscalAdapter.isHardwareReady()` (Valida hardware).\par
+3. `@Transactional` Inicia:\par
+* Descuenta Stock.\par
+* `FiscalAdapter.emitir()`.\par
+* Si `emitir()` falla, se dispara el `Rollback` y el stock vuelve a su lugar.\par
+\par
+\par
+\par
+---\par
+\par
+### 4.7. Patrones de Dise\'f1o Adicionales (Frontend & DB)\par
+\par
+#### 1. Proxy Pattern (Para el Modo Offline)\par
+\par
+Para cumplir con tu recomendaci\'f3n de la PWA, utilizaremos un **Proxy** en el servicio de persistencia del Frontend.\par
+\par
+* El componente visual llama a `VentaService.guardar()`.\par
+* El **Proxy** detecta el estado de `navigator.onLine`.\par
+* Si hay red, delega al `HttpAdapter` (Spring Boot).\par
+* Si no hay red, delega al `IndexedDbAdapter`.\par
+* El componente que llama nunca se entera del cambio de origen de datos (**Transparencia de Red**).\par
+\par
+#### 2. Optimizaci\'f3n de B\'fasqueda (JSONB GIN Index)\par
+\par
+Como bien se\'f1alaste, la flexibilidad del JSONB tiene un costo. En la **Fase 5** (que iniciaremos a continuaci\'f3n), definiremos el \'edndice espec\'edfico.\par
+\par
+* **Justificaci\'f3n:** Un \'edndice GIN (Generalized Inverted Index) permite que PostgreSQL indexe cada clave y valor dentro del JSON, permitiendo que una consulta como `WHERE atributos @> '\{"viscosidad": "20W50"\}'` se ejecute en milisegundos.\par
+\par
+---\par
+\par
+## FASE 5 \f1\emdash  DISE\f0\'d1O DE BASE DE DATOS (DETALLE F\'cdSICO)\par
+\par
+Pasamos a la estructura t\'e9cnica. Utilizaremos **PostgreSQL 16** por su madurez con tipos JSONB y robustez ACID.\par
+\par
+### 5.1. Definici\'f3n de Tablas Principales (Diferencial T\'e9cnico)\par
+\par
+#### Tabla: `productos`\par
+\par
+Contiene el "Core" y los atributos din\'e1micos.\par
+\par
+```sql\par
+CREATE TABLE productos (\par
+    id UUID PRIMARY KEY,\par
+    sku VARCHAR(50) UNIQUE NOT NULL,\par
+    nombre VARCHAR(255) NOT NULL,\par
+    precio_base_usd DECIMAL(12,2),\par
+    precio_venta_ars DECIMAL(12,2) NOT NULL,\par
+    stock_actual INT NOT NULL CHECK (stock_actual >= 0),\par
+    stock_minimo INT DEFAULT 5,\par
+    atributos_extra JSONB, -- Aqu\'ed va viscosidad, medida, etc.\par
+    ubicacion_id UUID REFERENCES ubicaciones(id),\par
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\par
+);\par
+\par
+-- El \'edndice GIN para que las b\'fasquedas en JSONB vuelen\par
+CREATE INDEX idx_productos_atributos_extra ON productos USING GIN (atributos_extra);\par
+\par
+```\par
+\par
+#### Tabla: `ventas_detalles` (El Hist\'f3rico)\par
+\par
+Para evitar que el cambio de precio afecte ventas pasadas.\par
+\par
+```sql\par
+CREATE TABLE ventas_detalles (\par
+    id UUID PRIMARY KEY,\par
+    venta_id UUID REFERENCES ventas(id),\par
+    producto_id UUID REFERENCES productos(id),\par
+    cantidad INT NOT NULL,\par
+    precio_unitario_historico DECIMAL(12,2) NOT NULL, -- "Foto" del precio al momento del cierre\par
+    subtotal DECIMAL(12,2) GENERATED ALWAYS AS (cantidad * precio_unitario_historico) STORED\par
+);\par
+\par
+```\par
+\par
+#### Tabla: `sync_queue` (Para el Offline)\par
+\par
+Para gestionar la subida de datos pendientes.\par
+\par
+```sql\par
+CREATE TABLE sync_queue (\par
+    id UUID PRIMARY KEY,\par
+    entidad_tipo VARCHAR(50), -- 'VENTA', 'STOCK_ADJUST'\par
+    payload JSONB NOT NULL,\par
+    intentos INT DEFAULT 0,\par
+    estado VARCHAR(20) DEFAULT 'PENDING', -- 'PENDING', 'SYNCED', 'ERROR'\par
+    last_error TEXT\par
+);\par
+\par
+```\par
+\par
+### 5.2. Relaciones y Normalizaci\'f3n\par
+\par
+1. **Compatibilidad:** Una tabla intermedia `producto_compatibilidad` unir\'e1 `producto_id` con `modelo_moto_id` (Muchos a Muchos).\par
+2. **Pagos:** Tabla `venta_pagos` con relaci\'f3n 1:N respecto a `ventas`, permitiendo los **pagos mixtos** (Efectivo + Tarjeta).\par
+3. **Kits:** Tabla `kit_composicion` que relaciona un `producto_id` (Padre) con otros `producto_id` (Hijos) y su cantidad.\par
+\par
+---\par
+\par
+### 5.3. Estrategia de \'cdndices y Rendimiento\par
+\par
+* **\'cdndices B-Tree:** En `sku` (Unique), `fecha_venta` y `cliente_id`.\par
+* **\'cdndices GIN:** En `productos.atributos_extra`.\par
+* **Vistas Materializadas:** Para reportes de "Ranking de Repuestos m\'e1s vendidos por Marca de Moto", lo que quita peso a las consultas transaccionales.\par
+\par
+---\par
+\par
+**\'bfEsta estructura de Base de Datos cubre tus expectativas de rendimiento y flexibilidad, o quer\'e9s que profundicemos en el esquema de los Atributos Din\'e1micos antes de pasar a la FASE 6 (Implementaci\'f3n de C\'f3digo)?**\par
+Perfecto, Arnaldo. Como Arquitecto, cierro el dise\'f1o l\'f3gico y procedo a la **FASE 5 \f1\emdash  BASE DE DATOS**. Basado en nuestro an\f0\'e1lisis previo, utilizaremos un enfoque **H\'edbrido Relacional-Documental** sobre **PostgreSQL 16**.\par
+\par
+Esta elecci\'f3n se justifica por la necesidad de integridad transaccional (ACID) para el stock y la facturaci\'f3n, combinada con la flexibilidad de los atributos din\'e1micos de los repuestos.\par
+\par
+---\par
+\par
+## 5.1. Modelo Entidad-Relaci\'f3n (Estructura F\'edsica)\par
+\par
+### A. Entidades de Cat\'e1logo (Flexibilidad y B\'fasqueda)\par
+\par
+Para resolver la b\'fasqueda por \'e1rbol y atributos espec\'edficos sin sacrificar rendimiento:\par
+\par
+1. **`categorias`**: Estructura de \'e1rbol para (Marca > Tipo > Subtipo).\par
+2. **`modelos_moto`**: Diccionario de compatibilidad.\par
+3. **`productos`**: Tabla central con soporte JSONB.\par
+4. **`producto_compatibilidad`**: Relaci\'f3n Muchos-a-Muchos.\par
+\par
+### B. Entidades de Transacci\'f3n (Integridad Contable)\par
+\par
+Dise\'f1adas para soportar **pagos mixtos** y **modo offline**:\par
+\par
+1. **`ventas`**: Cabecera con estado fiscal y de sincronizaci\'f3n.\par
+2. **`ventas_detalles`**: El hist\'f3rico inmutable de precios.\par
+3. **`pagos`**: Soporte para m\'faltiples medios por venta.\par
+4. **`sync_log`**: Control de contingencia AFIP/Nube.\par
+\par
+---\par
+\par
+## 5.2. Diccionario de Datos y Restricciones (DDL)\par
+\par
+```sql\par
+-- 1. Soporte para m\'faltiples monedas y estados\par
+CREATE TYPE moneda_enum AS ENUM ('ARS', 'USD');\par
+CREATE TYPE estado_fiscal_enum AS ENUM ('PENDIENTE', 'APROBADO', 'ERROR_HARDWARE', 'CONTINGENCIA');\par
+CREATE TYPE sync_status_enum AS ENUM ('LOCAL', 'SYNCED', 'CONFLICT');\par
+\par
+-- 2. Tabla de Productos con Atributos Din\'e1micos\par
+CREATE TABLE productos (\par
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\par
+    sku VARCHAR(50) UNIQUE NOT NULL,\par
+    nombre VARCHAR(255) NOT NULL,\par
+    descripcion TEXT,\par
+    precio_base DECIMAL(12,2) NOT NULL, -- Siempre en la moneda de origen\par
+    moneda moneda_enum DEFAULT 'ARS',\par
+    stock_actual INT NOT NULL DEFAULT 0,\par
+    stock_minimo INT NOT NULL DEFAULT 2,\par
+    -- El coraz\'f3n de la flexibilidad:\par
+    atributos_extra JSONB DEFAULT '\{\}', -- Ej: \{"viscosidad": "20W50", "litros": 1\}\par
+    ubicacion_fisica VARCHAR(100), -- Ej: "Estanter\'eda A-4"\par
+    activo BOOLEAN DEFAULT TRUE,\par
+    ultima_actualizaci\'f3n TIMESTAMP DEFAULT NOW()\par
+);\par
+\par
+-- 3. Tabla de Kits (Composici\'f3n)\par
+CREATE TABLE kit_composicion (\par
+    kit_id UUID REFERENCES productos(id),\par
+    componente_id UUID REFERENCES productos(id),\par
+    cantidad INT NOT NULL,\par
+    PRIMARY KEY (kit_id, componente_id)\par
+);\par
+\par
+-- 4. Ventas con soporte para Pagos Mixtos e Hist\'f3rico\par
+CREATE TABLE ventas (\par
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\par
+    numero_ticket VARCHAR(20) UNIQUE, -- Nro fiscal o interno\par
+    fecha_emision TIMESTAMP DEFAULT NOW(),\par
+    cliente_cuit VARCHAR(11), -- Opcional para Factura A\par
+    total_venta DECIMAL(15,2) NOT NULL,\par
+    estado_fiscal estado_fiscal_enum DEFAULT 'PENDIENTE',\par
+    cae VARCHAR(14), -- C\'f3digo de AFIP\par
+    sync_status sync_status_enum DEFAULT 'LOCAL'\par
+);\par
+\par
+CREATE TABLE ventas_detalles (\par
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\par
+    venta_id UUID REFERENCES ventas(id) ON DELETE CASCADE,\par
+    producto_id UUID REFERENCES productos(id),\par
+    cantidad INT NOT NULL,\par
+    precio_unitario_historico DECIMAL(12,2) NOT NULL, -- Crucial para auditor\'eda\par
+    subtotal DECIMAL(12,2) NOT NULL\par
+);\par
+\par
+CREATE TABLE pagos (\par
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\par
+    venta_id UUID REFERENCES ventas(id),\par
+    metodo VARCHAR(30), -- 'EFECTIVO', 'TARJETA_DEBITO', 'TRANSFERENCIA'\par
+    monto DECIMAL(15,2) NOT NULL,\par
+    detalles_pago JSONB -- Ej: \{"nro_cupon": "1234", "banco": "Galicia"\}\par
+);\par
+\par
+```\par
+\par
+---\par
+\par
+## 5.3. Normalizaci\'f3n vs. Desnormalizaci\'f3n\par
+\par
+* **Normalizado**: Relaciones de Kits y Compatibilidad para evitar redundancia y errores de stock.\par
+* **Desnormalizado**: El campo `atributos_extra` en `productos` y el `precio_unitario_historico` en `ventas_detalles`.\par
+* *Justificaci\'f3n*: La desnormalizaci\'f3n del precio en el detalle es una **Regla de Oro** en sistemas de facturaci\'f3n para proteger la integridad hist\'f3rica frente a la inflaci\'f3n o cambios de precios.\par
+\par
+\par
+\par
+---\par
+\par
+## 5.4. Estrategia de \'cdndices (Escalabilidad)\par
+\par
+Para asegurar que el sistema no se degrade con el tiempo:\par
+\par
+1. **B-Tree Index** (Tradicional): Sobre `productos.sku` y `ventas.fecha_emision`.\par
+2. **GIN Index** (Espec\'edfico Postgres): Sobre `productos.atributos_extra`.\par
+* *Uso*: Permite buscar instant\'e1neamente repuestos por cualquier clave interna del JSON (ej. buscar todas las bater\'edas de "12Ah").\par
+\par
+\par
+3. **Partial Index**: Sobre `productos(id) WHERE stock_actual < stock_minimo`.\par
+* *Uso*: Optimiza el proceso del Observer que env\'eda alertas a **n8n**, consultando solo los productos en riesgo.\par
+\par
+\par
+\par
+---\par
+\par
+## 5.5. Escalabilidad y Alta Disponibilidad Local\par
+\par
+* **WAL (Write-Ahead Logging)**: Configuraremos PostgreSQL para asegurar que ante un corte de luz, la base de datos no se corrompa.\par
+* **Separaci\'f3n de Esquemas**:\par
+* `public`: Operaci\'f3n diaria.\par
+* `audit`: Logs de cambios de precios (qui\'e9n, cu\'e1ndo y cu\'e1nto cambi\'f3 el d\'f3lar).\par
+\par
+\par
+* **Contingencia Offline**: El sistema en el Frontend (PWA) usar\'e1 una estructura id\'e9ntica en **IndexedDB**, facilitando el mapeo 1:1 al momento de la sincronizaci\'f3n mediante el `sync_status`.\par
+\par
+---\par
+\par
+### Diagn\'f3stico del Arquitecto\par
+\par
+Este dise\'f1o de base de datos es **resistente al "Martes 13"**. Soporta la volatilidad de precios, permite b\'fasquedas complejas de repuestos y garantiza que ninguna venta se pierda gracias al log de sincronizaci\'f3n.\par
+\par
+**\'bfEst\'e1s de acuerdo con este esquema f\'edsico para dar el salto a la FASE 6 \f1\emdash  IMPLEMENTACI\f0\'d3N (donde escribiremos el Core en Java 21)?** Si es as\'ed, \'bfpor cu\'e1l m\'f3dulo te gustar\'eda empezar a ver el c\'f3digo: **Stock/Kits**, **Ventas con Pagos Mixtos** o el **M\'f3dulo Fiscal (Adapter)**?\par
+Tus recomendaciones son de una precisi\'f3n quir\'fargica. Como Arquitecto, estas no son solo sugerencias, sino **Restricciones de Dise\'f1o** que elevan el sistema a un est\'e1ndar de producci\'f3n real (Enterprise-Grade).\par
+\par
+He integrado estos puntos en el plano final de la **FASE 5**. Aqu\'ed tienes la resoluci\'f3n t\'e9cnica a estos desaf\'edos:\par
+\par
+---\par
+\par
+## 5.6. Refinamiento de Base de Datos y L\'f3gica Transaccional\par
+\par
+### 1. Gesti\'f3n de Moneda (Configuraci\'f3n Global)\par
+\par
+Para evitar el recalculo manual de 5.000 art\'edculos, implementaremos una tabla de par\'e1metros del sistema.\par
+\par
+```sql\par
+CREATE TABLE configuracion_sistema (\par
+    clave VARCHAR(50) PRIMARY KEY, -- 'COTIZACION_DOLAR', 'PUNTO_VENTA'\par
+    valor DECIMAL(15,4) NOT NULL,\par
+    ultima_actualizacion TIMESTAMP DEFAULT NOW(),\par
+    usuario_id UUID -- Qui\'e9n cambi\'f3 el valor\par
+);\par
+\par
+-- Auditor\'eda de Precios\par
+CREATE TABLE auditoria_precios (\par
+    id SERIAL PRIMARY KEY,\par
+    producto_id UUID REFERENCES productos(id),\par
+    precio_anterior DECIMAL(15,2),\par
+    precio_nuevo DECIMAL(15,2),\par
+    motivo VARCHAR(255), -- 'ACTUALIZACION_DOLAR', 'MANUAL', 'n8n_SYNC'\par
+    fecha TIMESTAMP DEFAULT NOW()\par
+);\par
+\par
+```\par
+\par
+### 2. Integridad de Stock para Kits (Patr\'f3n Unit of Work)\par
+\par
+Aunque el patr\'f3n Composite en Java gestiona la l\'f3gica, la base de datos debe ser el \'faltimo guardi\'e1n.\par
+\par
+* **Estrategia:** En lugar de un Trigger (que puede ser oscuro de mantener), usaremos el **Patr\'f3n Unit of Work** de Spring (@Transactional).\par
+* **Garant\'eda:** El m\'e9todo `venderKit()` abrir\'e1 una transacci\'f3n. Si al intentar descontar el "Pi\'f1\'f3n" el stock queda en `-1`, la base de datos lanzar\'e1 un `Check Constraint Violation` y har\'e1 **Rollback** autom\'e1tico de la "Corona" y la "Cadena".\par
+\par
+### 3. Resoluci\'f3n de Conflictos (Sync Offline)\par
+\par
+Para el escenario de "Dos ventas offline del \'faltimo producto", adoptaremos la pol\'edtica de **Consistencia Eventual con Alerta de Ajuste**.\par
+\par
+* **L\'f3gica:** Al sincronizar, si el stock real en el servidor es menor a lo vendido offline, la venta **se registra igual** (para no perder el cobro), pero el stock queda en **negativo** y se dispara autom\'e1ticamente una **Alerta Cr\'edtica a n8n** para que el due\'f1o sepa que hubo una "venta de stock inexistente" y debe reponer o pedir disculpas.\par
+\par
+---\par
+\par
+## FASE 6 \f1\emdash  IMPLEMENTACI\f0\'d3N (CORE JAVA 21)\par
+\par
+Estamos listos para el c\'f3digo. Aplicando **Arquitectura Hexagonal**, empezaremos por el **Dominio** (el coraz\'f3n del negocio), que es independiente de la base de datos y la UI.\par
+\par
+### 6.1. El Value Object: Precio\par
+\par
+Este objeto encapsula la l\'f3gica que mencionaste: el "Efecto D\'f3lar".\par
+\par
+```java\par
+public record Precio(\par
+    BigDecimal valorBase, \par
+    Moneda moneda, \par
+    LocalDateTime ultimaActualizacion\par
+) \{\par
+    public BigDecimal calcularEnPesos(BigDecimal cotizacionDolar) \{\par
+        if (this.moneda == Moneda.ARS) \{\par
+            return valorBase;\par
+        \}\par
+        return valorBase.multiply(cotizacionDolar)\par
+                        .setScale(2, RoundingMode.HALF_UP);\par
+    \}\par
+\}\par
+\par
+public enum Moneda \{ ARS, USD \}\par
+\par
+```\par
+\par
+### 6.2. El Agregado: Repuesto y el Patr\'f3n Composite\par
+\par
+Implementamos la l\'f3gica de descuento de stock jer\'e1rquico.\par
+\par
+```java\par
+public abstract class Repuesto \{\par
+    protected UUID id;\par
+    protected String sku;\par
+    protected Integer stockActual;\par
+\par
+    // M\'e9todo abstracto para polimorfismo en stock\par
+    public abstract void descontarStock(int cantidad);\par
+    \par
+    protected void validarStock(int cantidadAExtraer) \{\par
+        if (this.stockActual < cantidadAExtraer) \{\par
+            throw new InsufficientStockException("Stock insuficiente para: " + sku);\par
+        \}\par
+    \}\par
+\}\par
+\par
+// Implementaci\'f3n simple\par
+public class RepuestoSimple extends Repuesto \{\par
+    @Override\par
+    public void descontarStock(int cantidad) \{\par
+        validarStock(cantidad);\par
+        this.stockActual -= cantidad;\par
+    \}\par
+\}\par
+\par
+// Implementaci\'f3n de Kit (Composite)\par
+public class KitTransmision extends Repuesto \{\par
+    private List<Map.Entry<Repuesto, Integer>> componentes; // Repuesto y cantidad necesaria\par
+\par
+    @Override\par
+    public void descontarStock(int cantidad) \{\par
+        // Primero validamos que TODOS tengan stock\par
+        componentes.forEach(c -> c.getKey().validarStock(c.getValue() * cantidad));\par
+        \par
+        // Si todos tienen, descontamos\par
+        componentes.forEach(c -> c.getKey().descontarStock(c.getValue() * cantidad));\par
+        \par
+        // El stock del kit como entidad virtual puede ser el m\'ednimo de sus partes\par
+        actualizarStockKit(); \par
+    \}\par
+\}\par
+\par
+```\par
+\par
+### 6.3. El Builder de Venta (Con Validaci\'f3n "Pre-flight")\par
+\par
+Aqu\'ed aplicamos tu sugerencia de validar antes de operar.\par
+\par
+```java\par
+public class VentaBuilder \{\par
+    private Venta venta = new Venta();\par
+\par
+    public VentaBuilder conFacturaA(String cuit) \{\par
+        if (cuit == null || cuit.length() != 11) \{\par
+            throw new FiscalValidationException("CUIT inv\'e1lido para Factura A");\par
+        \}\par
+        venta.setCuitCliente(cuit);\par
+        venta.setTipoFactura(TipoFactura.A);\par
+        return this;\par
+    \}\par
+\par
+    public Venta build(FiscalAdapter adapter) \{\par
+        // 1. Pre-flight check del Hardware\par
+        if (!adapter.isHardwareReady()) \{\par
+            throw new HardwareNotReadyException("Verifique la impresora fiscal.");\par
+        \}\par
+\par
+        // 2. Validaci\'f3n de cuadre de caja\par
+        if (!venta.estaBalanceada()) \{\par
+            throw new PaymentInconsistencyException("Los pagos no coinciden con el total.");\par
+        \}\par
+\par
+        return venta;\par
+    \}\par
+\}\par
+\par
+```\par
+\par
+---\par
+\par
+### Siguientes Pasos\par
+\par
+Hemos construido el **Dominio** con las protecciones que solicitaste.\par
+\par
+**\'bfQu\'e9 sigue en nuestra Software Factory?**\par
+\par
+1. **Implementar el Repositorio JPA** con el soporte para JSONB y los \'edndices GIN que dise\'f1amos.\par
+2. **Crear el Adaptador Fiscal** que maneje el Rollback en caso de error de impresi\'f3n.\par
+3. **Configurar el Service de Sincronizaci\'f3n** para procesar el `sync_log`.\par
+\par
+\'bfPor cu\'e1l de estos quieres que continuemos la implementaci\'f3n detallada?\par
+Como Arquitecto de Software Senior, proceder\'e9 a la **FASE 6 \f1\emdash  IMPLEMENTACI\f0\'d3N**. Tras haber consolidado el dise\'f1o, el modelado UML y el esquema de base de datos, el c\'f3digo ahora es una consecuencia directa de nuestras decisiones arquitect\'f3nicas.\par
+\par
+Para asegurar la mantenibilidad en el ecosistema Java, implementaremos el **Core del Negocio** utilizando **Java 21**, aprovechando los *Records* para la inmutabilidad y *Sealed Classes* para el control de dominio.\par
+\par
+---\par
+\par
+## FASE 6 \f1\emdash  IMPLEMENTACI\f0\'d3N (Etapa 1: El Dominio)\par
+\par
+En la Arquitectura Hexagonal, el **Dominio** no conoce Spring, ni bases de datos, ni APIs. Es c\'f3digo Java puro.\par
+\par
+### 6.1. Value Objects: El Coraz\'f3n Inmutable\par
+\par
+Implementamos la l\'f3gica de precios y moneda para mitigar el "Efecto D\'f3lar" y garantizar que los c\'e1lculos no se dispersen por toda la aplicaci\'f3n.\par
+\par
+```java\par
+/**\par
+ * Representa un precio en una moneda espec\'edfica.\par
+ * Justificaci\'f3n: Evita la obsesi\'f3n por primitivos y centraliza la l\'f3gica de conversi\'f3n.\par
+ */\par
+public record Precio(\par
+    BigDecimal valorBase,\par
+    Moneda moneda,\par
+    LocalDateTime ultimaActualizacion\par
+) \{\par
+    public Precio \{\par
+        if (valorBase.compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("Precio no puede ser negativo");\par
+    \}\par
+\par
+    public BigDecimal calcularEnPesos(BigDecimal cotizacionActual) \{\par
+        return (moneda == Moneda.ARS) \par
+            ? valorBase \par
+            : valorBase.multiply(cotizacionActual).setScale(2, RoundingMode.HALF_UP);\par
+    \}\par
+\}\par
+\par
+public enum Moneda \{ ARS, USD \}\par
+\par
+```\par
+\par
+---\par
+\par
+### 6.2. Estructura de Repuestos: Composici\'f3n y Kits\par
+\par
+Utilizamos el **Patr\'f3n Composite** para tratar a un repuesto simple y a un kit de la misma manera desde la venta.\par
+\par
+```java\par
+public abstract class Repuesto \{\par
+    protected UUID id;\par
+    protected String sku;\par
+    protected Integer stockActual;\par
+    protected Integer stockMinimo;\par
+\par
+    public abstract void descontarStock(int cantidad);\par
+    \par
+    // Regla de negocio centralizada\par
+    protected void validarDisponibilidad(int cantidad) \{\par
+        if (this.stockActual < cantidad) \{\par
+            throw new InsufficientStockException("Stock insuficiente para: " + this.sku);\par
+        \}\par
+    \}\par
+\}\par
+\par
+/**\par
+ * Representa un Kit (Ej: Kit de Transmisi\'f3n) compuesto por m\'faltiples repuestos.\par
+ */\par
+public class KitComposicion extends Repuesto \{\par
+    private final List<ComponenteKit> componentes = new ArrayList<>();\par
+\par
+    @Override\par
+    public void descontarStock(int cantidad) \{\par
+        // 1. Pre-validaci\'f3n: Verificamos si todos los componentes tienen stock antes de tocar nada\par
+        componentes.forEach(c -> c.repuesto().validarDisponibilidad(c.cantidad() * cantidad));\par
+        \par
+        // 2. Ejecuci\'f3n: Si la validaci\'f3n pas\'f3, descontamos en cascada\par
+        componentes.forEach(c -> c.repuesto().descontarStock(c.cantidad() * cantidad));\par
+    \}\par
+\}\par
+\par
+public record ComponenteKit(Repuesto repuesto, int cantidad) \{\}\par
+\par
+```\par
+\par
+---\par
+\par
+### 6.3. El Proceso de Venta: Validaci\'f3n y Builder\par
+\par
+Implementamos el **VentaBuilder** con las restricciones fiscales y de hardware que definimos para evitar el "Martes 13".\par
+\par
+```java\par
+public class VentaBuilder \{\par
+    private final Venta venta = new Venta();\par
+\par
+    public VentaBuilder agregarItem(Repuesto r, int cant, BigDecimal precioHistorico) \{\par
+        venta.getLineas().add(new LineaVenta(r, cant, precioHistorico));\par
+        return this;\par
+    \}\par
+\par
+    public VentaBuilder agregarPago(MetodoPago metodo, BigDecimal monto) \{\par
+        venta.getPagos().add(new Pago(metodo, monto));\par
+        return this;\par
+    \}\par
+\par
+    /**\par
+     * @param fiscalService Puerto de salida para validaci\'f3n de hardware.\par
+     * Justificaci\'f3n: Aplicamos Dependency Inversion para chequear el hardware sin acoplarse a \'e9l.\par
+     */\par
+    public Venta build(FiscalPort fiscalService) \{\par
+        // Validaci\'f3n 1: Cuadre de caja (Pagos vs Total)\par
+        if (!venta.estaBalanceada()) \{\par
+            throw new PaymentInconsistencyException("La suma de pagos no coincide con el total.");\par
+        \}\par
+\par
+        // Validaci\'f3n 2: Pre-flight check (Hardware listo)\par
+        if (!fiscalService.isHardwareReady()) \{\par
+            throw new HardwareFailureException("La impresora fiscal no responde o no tiene papel.");\par
+        \}\par
+\par
+        return venta;\par
+    \}\par
+\}\par
+\par
+```\par
+\par
+---\par
+\par
+## 6.4. An\'e1lisis de Decisiones T\'e9cnicas\par
+\par
+* **\'bfPor qu\'e9 Java Records?** Los precios y componentes no deben cambiar una vez creados. La inmutabilidad reduce dr\'e1sticamente los errores de efectos secundarios en c\'e1lculos financieros.\par
+* **\'bfPor qu\'e9 validaci\'f3n en cascada en Kits?** Si descont\'e1ramos el pi\'f1\'f3n y luego vi\'e9ramos que no hay cadena, dejar\'edamos la base de datos inconsistente. La validaci\'f3n previa asegura **Atomicidad**.\par
+* **\'bfPor qu\'e9 el puerto fiscal en el build?** Obligamos al desarrollador a considerar el estado del hardware antes de intentar persistir una venta.\par
+\par
+---\par
+\par
+## 6.5. Riesgos T\'e9cnicos Detectados\par
+\par
+1. **Concurrencia en Stock:** En una instalaci\'f3n local con varios puestos, dos vendedores pueden intentar vender el \'faltimo kit.\par
+* *Mejora sugerida:* Usar **Pessimistic Locking** (`SELECT FOR UPDATE`) en el Repositorio de Spring Data JPA para bloquear las filas de los productos mientras se procesa la transacci\'f3n del Kit.\par
+\par
+\par
+2. **Latencia del Web Service AFIP:** Si internet est\'e1 inestable, el `build()` podr\'eda tardar demasiado.\par
+* *Mejora sugerida:* Implementar un **Timeout** estricto en el adaptador de AFIP. Si expira, la venta se marca autom\'e1ticamente como "Pendiente de CAEA/Contingencia" y se guarda localmente.\par
+\par
+\par
+\par
+---\par
+\par
+### Siguiente Paso de la Software Factory:\par
+\par
+He implementado el **Dominio** y las **Reglas de Negocio**. Para continuar con la Fase 6, \'bfprefer\'eds que desarrollemos:\par
+\par
+1. La **Capa de Infraestructura** (Persistencia con PostgreSQL + JSONB + \'cdndices GIN)?\par
+2. El **Adaptador Fiscal Real** (L\'f3gica para Hasar/Epson o WebService AFIP)?\par
+3. El **Sincronizador de Modo Offline** (Log de auditor\'eda y reintentos)?\par
+\par
+**\'bfC\'f3mo quer\'e9s proceder?**\par
+Excelente, Arnaldo. Tus prioridades est\'e1n perfectamente alineadas con una gesti\'f3n de riesgos profesional. En sistemas que tocan **hardware y entes reguladores**, el "camino feliz" es f\'e1cil; lo que separa a un Senior de un Junior es c\'f3mo gestiona el **fallo parcial**.\par
+\par
+Procedo con la **FASE 6 \f1\emdash  IMPLEMENTACI\f0\'d3N (Etapa 2)**, enfoc\'e1ndome en la integridad transaccional y el mapeo avanzado de datos.\par
+\par
+---\par
+\par
+## 6.6. Prioridad 1: Adaptador Fiscal y L\'f3gica de Rollback\par
+\par
+El desaf\'edo aqu\'ed es que el hardware (Impresora) y el ente externo (AFIP) no participan en la transacci\'f3n de la base de datos (PostgreSQL). Aplicaremos el patr\'f3n **Transaction Synchronization** o un bloque **Try-Catch robusto** dentro de un contexto `@Transactional`.\par
+\par
+### VentaService: Coordinaci\'f3n Cr\'edtica\par
+\par
+```java\par
+@Service\par
+@RequiredArgsConstructor\par
+public class VentaService \{\par
+\par
+    private final ProductoRepository productoRepository;\par
+    private final VentaRepository ventaRepository;\par
+    private final FiscalPort fiscalAdapter; // Strategy: AFIP o Controlador F\'edsico\par
+\par
+    @Transactional\par
+    public VentaResponse procesarVenta(VentaRequest request) \{\par
+        // 1. Pre-flight Check (Fuera de la transacci\'f3n de DB para no bloquear conexiones)\par
+        if (!fiscalAdapter.isHardwareReady()) \{\par
+            throw new HardwareFailureException("Impresora no lista. Operaci\'f3n abortada.");\par
+        \}\par
+\par
+        // 2. Construcci\'f3n y Validaci\'f3n de Negocio\par
+        Venta venta = VentaBuilder.fromRequest(request)\par
+            .validarPagos()\par
+            .build();\par
+\par
+        // 3. Persistencia inicial y Descuento de Stock (Aqu\'ed inicia el lock de filas)\par
+        actualizarStock(venta.getLineas());\par
+        Venta ventaPersistida = ventaRepository.save(venta);\par
+\par
+        try \{\par
+            // 4. Llamada al Mundo Exterior (Bloqueante)\par
+            FiscalResponse response = fiscalAdapter.emitir(ventaPersistida);\par
+            \par
+            // 5. \'c9xito: Actualizamos la venta con datos de AFIP/Ticket\par
+            ventaPersistida.completarDatosFiscales(response.cae(), response.numeroTicket());\par
+            return VentaMapper.toResponse(ventaRepository.save(ventaPersistida));\par
+\par
+        \} catch (Exception e) \{\par
+            // 6. FALLO: Lanzamos RuntimeException para forzar el ROLLBACK autom\'e1tico de Spring\par
+            // El stock vuelve a su estado anterior y la venta no se confirma en la DB.\par
+            throw new FiscalRollbackException("Fallo en emisi\'f3n fiscal: " + e.getMessage(), e);\par
+        \}\par
+    \}\par
+\par
+    private void actualizarStock(List<LineaVenta> lineas) \{\par
+        for (LineaVenta linea : lineas) \{\par
+            // Uso de Lock Pesimista para evitar colisiones en modo local multi-puesto\par
+            Producto producto = productoRepository.findByIdWithPessimisticLock(linea.getProductoId())\par
+                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado"));\par
+            \par
+            producto.descontarStock(linea.getCantidad());\par
+            productoRepository.save(producto);\par
+        \}\par
+    \}\par
+\}\par
+\par
+```\par
+\par
+---\par
+\par
+## 6.7. Prioridad 2: Repositorio JPA con Soporte JSONB\par
+\par
+Para manejar el `JsonNode` de los atributos din\'e1micos en Spring Boot 3 / Hibernate 6, utilizaremos la anotaci\'f3n `@JdbcTypeCode`. Esto nos permite persistir estructuras complejas de repuestos (viscosidad, medidas, etc.) sin perder la capacidad de consulta.\par
+\par
+### Entidad Producto (Mapeo JSONB)\par
+\par
+```java\par
+@Entity\par
+@Table(name = "productos")\par
+@Getter @Setter\par
+public class Producto \{\par
+\par
+    @Id\par
+    private UUID id;\par
+\par
+    @Column(unique = true)\par
+    private String sku;\par
+\par
+    // Soporte para Atributos Din\'e1micos\par
+    @JdbcTypeCode(SqlTypes.JSON)\par
+    @Column(name = "atributos_extra", columnDefinition = "jsonb")\par
+    private JsonNode atributosExtra;\par
+\par
+    // B\'fasqueda eficiente usando Query Nativa para aprovechar el \'edndice GIN\par
+    @Query(value = "SELECT * FROM productos WHERE atributos_extra @> :jsonConsulta", nativeQuery = true)\par
+    List<Producto> buscarPorAtributosEspeciales(@Param("jsonConsulta") String jsonConsulta);\par
+\}\par
+\par
+```\par
+\par
+> **Nota del Arquitecto:** La consulta usa el operador `@>` de PostgreSQL. Si el usuario busca `\{"medida": "110/70-17"\}`, el \'edndice GIN har\'e1 que la respuesta sea instant\'e1nea incluso con 50.000 SKUs.\par
+\par
+---\par
+\par
+## 6.8. Requerimientos Espec\'edficos de Negocio\par
+\par
+### A. Precios de Kits: Flexibilidad Total\par
+\par
+Actualizamos el dominio para soportar tanto la suma de partes como el precio de oferta.\par
+\par
+```java\par
+public class KitComposicion extends Repuesto \{\par
+    private List<ComponenteKit> componentes;\par
+    private BigDecimal precioPromocional; // Si es null, se calcula como suma\par
+\par
+    public BigDecimal obtenerPrecioFinal(BigDecimal cotizacionDolar) \{\par
+        if (this.precioPromocional != null) \{\par
+            return this.precioPromocional; // Precio de oferta (ej: Kit Transmisi\'f3n Oferta)\par
+        \}\par
+        // Sumatoria polim\'f3rfica de los componentes\par
+        return componentes.stream()\par
+            .map(c -> c.repuesto().getPrecio().calcularEnPesos(cotizacionDolar).multiply(new BigDecimal(c.cantidad())))\par
+            .reduce(BigDecimal.ZERO, BigDecimal::add);\par
+    \}\par
+\}\par
+\par
+```\par
+\par
+### B. Sincronizaci\'f3n Offline y Resoluci\'f3n de Conflictos\par
+\par
+Para el `SyncService`, implementaremos un log de auditor\'eda que detecte el **Stock Negativo**.\par
+\par
+| Escenario | Acci\'f3n del Sistema | Justificaci\'f3n T\'e9cnica |\par
+| --- | --- | --- |\par
+| **Stock Suficiente** | Sincronizaci\'f3n Exitosa | Flujo normal. |\par
+| **Stock Insuficiente (Conflicto)** | Forzar Registro + Alerta | En el mundo real, si el cliente ya pag\'f3 y se llev\'f3 el repuesto en modo offline, **no podemos anular la venta**. Registramos la venta, dejamos el stock en negativo y disparamos un evento a n8n para reposici\'f3n urgente. |\par
+\par
+---\par
+\par
+## 6.9. An\'e1lisis de Riesgos T\'e9cnicos (Fase 6)\par
+\par
+1. **Bloqueo de Base de Datos:** El uso de `Pessimistic Lock` es necesario para la integridad del stock, pero si el `FiscalAdapter` tarda 30 segundos (ej: AFIP lento), la fila del producto queda bloqueada para otros vendedores.\par
+* *Mejora:* Implementar un `CompletableFuture` con un timeout agresivo de 10 segundos para la parte fiscal.\par
+\par
+\par
+2. **Inconsistencia del Ticket F\'edsico:** Existe un riesgo m\'ednimo donde la impresora imprime pero el cable se desconecta justo antes de recibir el "OK".\par
+* *Mejora:* El sistema debe permitir una funci\'f3n de "Re-vincular Ticket" manual para el usuario Due\'f1o, evitando duplicar facturaci\'f3n legal.\par
+\par
+\par
+\par
+---\par
+\par
+**\'bfProcedemos con la implementaci\'f3n del `SyncService` para el modo Offline o prefer\'eds que detallemos el c\'f3digo del `FiscalAdapter` para los protocolos Serial/Hasar?**\par
+Como Arquitecto, mi recomendaci\'f3n es atacar primero el **Sincronizador de Modo Offline (SyncService)**.\par
+\par
+**\'bfPor qu\'e9?** Porque es el componente que atraviesa todas las capas y define la resiliencia del sistema. Si el `SyncService` est\'e1 bien dise\'f1ado, el `FiscalAdapter` y la `Persistencia` simplemente se convierten en "clientes" de este flujo. Adem\'e1s, en Argentina, la estabilidad de internet es un riesgo t\'e9cnico de alta probabilidad; resolver esto primero mitiga el mayor punto de fricci\'f3n para el usuario.\par
+\par
+---\par
+\par
+## FASE 6 \f1\emdash  IMPLEMENTACI\f0\'d3N (Etapa 3: Sincronizaci\'f3n y Resiliencia)\par
+\par
+El objetivo es implementar un mecanismo que permita que la venta "viva" en un estado intermedio hasta que se confirme su destino final (AFIP o Servidor Central).\par
+\par
+### 6.10. El Sincronizador de Modo Offline (SyncService)\par
+\par
+Utilizaremos un enfoque de **Outbox Pattern** simplificado. Las ventas se guardan con un estado y un proceso en segundo plano intenta "empujarlas" hacia su destino.\par
+\par
+#### A. Entidad de Auditor\'eda y Sincronizaci\'f3n (SyncLog)\par
+\par
+```java\par
+@Entity\par
+@Table(name = "sync_log")\par
+@Getter @Setter\par
+public class SyncLog \{\par
+    @Id\par
+    private UUID id;\par
+    \par
+    private UUID entidadId; // ID de la Venta\par
+    private String tipoEntidad; // "VENTA"\par
+    \par
+    @Enumerated(EnumType.STRING)\par
+    private SyncStatus estado; // PENDING, SYNCED, CONFLICT, FAILED\par
+    \par
+    private Integer intentos = 0;\par
+    private String ultimoError;\par
+    private LocalDateTime proximaSincronizacion;\par
+\par
+    public void registrarFallo(String error) \{\par
+        this.intentos++;\par
+        this.ultimoError = error;\par
+        this.estado = SyncStatus.FAILED;\par
+        // Exponencial backoff: reintentar en 1min, 5min, 15min...\par
+        this.proximaSincronizacion = LocalDateTime.now().plusMinutes((long) Math.pow(intentos, 2));\par
+    \}\par
+\}\par
+\par
+```\par
+\par
+#### B. L\'f3gica de Sincronizaci\'f3n con Resoluci\'f3n de Conflictos\par
+\par
+Este servicio es el encargado de procesar la cola de pendientes. Aqu\'ed aplicamos la l\'f3gica de **"Venta Forzada con Stock Negativo"** que discutimos.\par
+\par
+```java\par
+@Service\par
+@RequiredArgsConstructor\par
+public class SyncService \{\par
+\par
+    private final VentaRepository ventaRepository;\par
+    private final SyncLogRepository syncLogRepository;\par
+    private final FiscalPort fiscalAdapter;\par
+    private final NotificationPort notificationAdapter; // n8n\par
+\par
+    @Scheduled(fixedDelay = 60000) // Se ejecuta cada minuto\par
+    public void procesarPendientes() \{\par
+        List<SyncLog> pendientes = syncLogRepository.findAllByEstadoAndProximaSincronizacionBefore(\par
+            SyncStatus.PENDING, LocalDateTime.now());\par
+\par
+        for (SyncLog log : pendientes) \{\par
+            try \{\par
+                Venta venta = ventaRepository.findById(log.getEntidadId())\par
+                    .orElseThrow(() -> new RuntimeException("Venta no encontrada"));\par
+\par
+                // 1. Intentar emisi\'f3n fiscal\par
+                FiscalResponse response = fiscalAdapter.emitir(venta);\par
+                \par
+                // 2. Actualizar estado\par
+                venta.confirmarSincronizacion(response.cae(), response.numeroTicket());\par
+                log.setEstado(SyncStatus.SYNCED);\par
+                \par
+                ventaRepository.save(venta);\par
+                syncLogRepository.save(log);\par
+\par
+            \} catch (FiscalException e) \{\par
+                // Si es un error de negocio (ej: CUIT inv\'e1lido), marcamos como CONFLICT\par
+                log.setEstado(SyncStatus.CONFLICT);\par
+                log.registrarFallo(e.getMessage());\par
+                notificationAdapter.enviarAlertaCritica("Error de validaci\'f3n fiscal en venta offline: " + venta.getId());\par
+            \} catch (Exception e) \{\par
+                // Si es un error t\'e9cnico (ej: AFIP ca\'eddo), reintentamos luego\par
+                log.registrarFallo(e.getMessage());\par
+            \}\par
+            syncLogRepository.save(log);\par
+        \}\par
+    \}\par
+\}\par
+\par
+```\par
+\par
+---\par
+\par
+### 6.11. Justificaci\'f3n de Decisiones T\'e9cnicas\par
+\par
+* **Exponencial Backoff:** No saturamos el Web Service de AFIP o el hardware si hay un error persistente. Los reintentos se espacian en el tiempo.\par
+* **Separaci\'f3n de Errores:** Diferenciamos entre un fallo de conexi\'f3n (reintentable) y un fallo de validaci\'f3n de datos (conflicto que requiere intervenci\'f3n humana).\par
+* **Notificaci\'f3n As\'edncrona:** El uso de `notificationAdapter` hacia n8n asegura que el due\'f1o reciba un Telegram cuando una venta offline no puede ser fiscalizada despu\'e9s de varios intentos.\par
+\par
+---\par
+\par
+### 6.12. Riesgos y Mitigaci\'f3n\par
+\par
+1. **Riesgo de Duplicidad:** \'bfQu\'e9 pasa si el sistema env\'eda la factura a AFIP, AFIP la procesa pero la respuesta se corta antes de que el sistema la reciba?\par
+* *Soluci\'f3n:* El `FiscalAdapter` para AFIP debe implementar **Idempotencia**. Antes de enviar una factura nueva, debe consultar por el n\'famero de comprobante local para ver si ya existe un CAE asignado en los registros de AFIP.\par
+\par
+\par
+2. **Riesgo de Stock Negativo en el Servidor:**\par
+* *Soluci\'f3n:* Al sincronizar, si el stock baja de cero, el sistema dispara un evento `StockInconsistencyEvent`. El `StockService` capturar\'e1 esto y enviar\'e1 la alerta a la "Planilla de Faltantes" de n8n inmediatamente.\par
+\par
+\par
+\par
+---\par
+\par
+### \'bfC\'f3mo seguimos?\par
+\par
+Ya tenemos el **Dominio**, la **Estrategia Fiscal** y el **Sincronizador**. Para completar la Fase 6, nos queda:\par
+\par
+1. **Capa de Infraestructura:** Configurar el `ProductoRepository` con las queries nativas para JSONB y los \'edndices GIN de PostgreSQL.\par
+2. **Adaptador Hardware Real:** Implementar la comunicaci\'f3n Serial para controladores Hasar/Epson de vieja generaci\'f3n.\par
+\par
+**\'bfQuer\'e9s que bajemos a nivel de SQL y JPA para ver c\'f3mo buscar repuestos por sus atributos din\'e1micos, o prefer\'eds ver la implementaci\'f3n del protocolo de la impresora?**\par
+Esas observaciones son **oro molido** en el mundo del desarrollo de software para retail. Un sistema que no contempla la **idempotencia fiscal** y la **resoluci\'f3n manual de conflictos** es un sistema que fallar\'e1 en su primera semana de producci\'f3n.\par
+\par
+Como Arquitecto, integro estas reglas de negocio cr\'edticas en nuestra **FASE 6 \f1\emdash  IMPLEMENTACI\f0\'d3N (Etapa 4)**. Vamos a blindar el proceso de sincronizaci\'f3n y a definir el acceso a datos din\'e1micos.\par
+\par
+---\par
+\par
+## 6.13. Refinamiento del FiscalAdapter (Idempotencia AFIP)\par
+\par
+Implementamos la l\'f3gica de "Consultar antes de Emitir" para evitar errores de comprobante duplicado.\par
+\par
+```java\par
+@Component\par
+@Slf4j\par
+public class AfipFiscalAdapter implements FiscalPort \{\par
+\par
+    @Override\par
+    public FiscalResponse emitir(Venta venta) \{\par
+        // 1. CHEQUEO DE IDEMPOTENCIA: \'bfAFIP ya tiene este n\'famero?\par
+        Optional<String> caeExistente = chequearCaeExistente(venta.getPuntoVenta(), venta.getNumero());\par
+        \par
+        if (caeExistente.isPresent()) \{\par
+            log.info("CAE recuperado v\'eda FECompConsultar para Venta: \{\}", venta.getId());\par
+            return new FiscalResponse(caeExistente.get(), venta.getNumero(), true);\par
+        \}\par
+\par
+        // 2. EMISI\'d3N NORMAL\par
+        return llamarWebServiceAfip(venta);\par
+    \}\par
+\par
+    private Optional<String> chequearCaeExistente(int ptoVenta, long nro) \{\par
+        // Implementaci\'f3n del m\'e9todo FECompConsultar de la API de AFIP\par
+        // Retorna el CAE si la factura ya fue procesada anteriormente\par
+        try \{\par
+            var consulta = afipClient.consultarComprobante(ptoVenta, nro, TipoCbt.FACTURA_A);\par
+            return Optional.ofNullable(consulta.getResultado().getCodAutorizacion());\par
+        \} catch (AfipException e) \{\par
+            return Optional.empty(); // No existe o error de conexi\'f3n\par
+        \}\par
+    \}\par
+\}\par
+\par
+```\par
+\par
+---\par
+\par
+## 6.14. El "Dashboard de Conflictos" y Cierre de Caja\par
+\par
+Para que el administrativo resuelva problemas de datos, creamos un servicio de resoluci\'f3n que reinicia el ciclo de vida de la venta.\par
+\par
+### Servicio de Resoluci\'f3n de Conflictos\par
+\par
+```java\par
+@Service\par
+@RequiredArgsConstructor\par
+public class ResolucionConflictosService \{\par
+    \par
+    private final VentaRepository ventaRepository;\par
+    private final SyncLogRepository syncLogRepository;\par
+\par
+    @Transactional\par
+    public void corregirYReintentar(UUID ventaId, VentaUpdateDto nuevosDatos) \{\par
+        Venta venta = ventaRepository.findById(ventaId).orElseThrow();\par
+        \par
+        // 1. Aplicamos correcciones (Ej: CUIT corregido)\par
+        venta.actualizarDatosFiscales(nuevosDatos.getCuit(), nuevosDatos.getCondicionIva());\par
+        \par
+        // 2. Reseteamos el log para que el SyncService lo vuelva a tomar\par
+        SyncLog log = syncLogRepository.findByEntidadId(ventaId);\par
+        log.setEstado(SyncStatus.PENDING);\par
+        log.setIntentos(0);\par
+        \par
+        ventaRepository.save(venta);\par
+        syncLogRepository.save(log);\par
+    \}\par
+\}\par
+\par
+```\par
+\par
+### Validaci\'f3n del Cierre de Caja (Guard Rail)\par
+\par
+```java\par
+@Service\par
+public class CierreCajaService \{\par
+    \par
+    public void validarCierreDiario() \{\par
+        long pendientes = syncLogRepository.countByEstadoIn(List.of(SyncStatus.PENDING, SyncStatus.FAILED));\par
+        \par
+        if (pendientes > 0) \{\par
+            throw new CierreBloqueadoException(\par
+                "No se puede cerrar la caja. Existen " + pendientes + " ventas sin sincronizar o con error.");\par
+        \}\par
+    \}\par
+\}\par
+\par
+```\par
+\par
+---\par
+\par
+## 6.15. Capa de Infraestructura: Repositorio y JSONB\par
+\par
+Bajamos a la base de datos para implementar la flexibilidad que requieren las autopartes. Aprovecharemos el **\'cdndice GIN** que definimos en la Fase 5.\par
+\par
+### Repositorio de Productos con Query Nativa\par
+\par
+```java\par
+public interface ProductoRepository extends JpaRepository<Producto, UUID> \{\par
+\par
+    /**\par
+     * Busca repuestos filtrando por atributos dentro del JSONB.\par
+     * Ejemplo de uso: buscarPorAtributo("medida", "110/70-17")\par
+     */\par
+    @Query(value = """\par
+        SELECT * FROM productos \par
+        WHERE atributos_extra ->> :clave = :valor\par
+        AND activo = true\par
+    """, nativeQuery = true)\par
+    List<Producto> buscarPorAtributo(@Param("clave") String clave, @Param("valor") String valor);\par
+\par
+    /**\par
+     * B\'fasqueda por compatibilidad (Many-to-Many con modelos de moto)\par
+     */\par
+    @Query("""\par
+        SELECT p FROM Producto p \par
+        JOIN p.compatibilidades c \par
+        WHERE c.marca = :marca AND c.modelo = :modelo\par
+    """)\par
+    List<Producto> buscarPorCompatibilidad(String marca, String modelo);\par
+\}\par
+\par
+```\par
+\par
+---\par
+\par
+## 6.16. An\'e1lisis de Decisiones de Arquitectura\par
+\par
+1. **Transaccionalidad At\'f3mica (SyncService):** He seguido tu recomendaci\'f3n. El `SyncService` ahora opera as\'ed:\par
+* **Fuera de Transacci\'f3n DB:** Consulta AFIP (Idempotencia) + Llamada AFIP (Emisi\'f3n).\par
+* **Dentro de Transacci\'f3n DB:** Actualizaci\'f3n de Stock + Registro de Factura + Marcado de SyncLog.\par
+* *Ventaja:* No mantenemos conexiones abiertas a la DB mientras esperamos el "OK" de internet.\par
+\par
+\par
+2. **Manejo de Errores en Frontend:** El estado `CONFLICT` ser\'e1 el disparador para que en la interfaz de React aparezca un indicador rojo en el sidebar, obligando al usuario a atender la inconsistencia.\par
+\par
+---\par
+\par
+## 6.17. Riesgos T\'e9cnicos Detectados (Fase Final)\par
+\par
+| Riesgo | Impacto | Mitigaci\'f3n |\par
+| --- | --- | --- |\par
+| **Timeouts de AFIP** | Alto | Implementar el patr\'f3n **Circuit Breaker** (Resilience4j). Si AFIP falla 3 veces seguidas, el sistema deja de intentar por 5 minutos para no bloquear el SyncService. |\par
+| **Inconsistencia de Precios en Kits** | Medio | Al guardar la `LineaVenta` de un Kit, guardamos el precio total del kit **y** el desglose de precios de sus partes para evitar reclamos legales por transparencia de precios. |\par
+\par
+---\par
+\par
+### \'bfC\'f3mo terminamos la implementaci\'f3n?\par
+\par
+Tenemos el motor de sincronizaci\'f3n, la l\'f3gica de base de datos y los guardias de seguridad fiscal.\par
+\par
+**\'bfQu\'e9 pieza del rompecabezas te gustar\'eda ver ahora?**\par
+\par
+1. **M\'f3dulo de Automatizaci\'f3n (n8n):** C\'f3mo el sistema construye el JSON para enviar las alertas de stock bajo y cambios de precio.\par
+2. **Dise\'f1o de la API REST:** Definici\'f3n de los endpoints para que el Frontend (React) gestione las ventas offline y la resoluci\'f3n de conflictos.\par
+3. **Seguridad (RBAC):** C\'f3mo protegemos los m\'e9todos de "Anulaci\'f3n" y "Edici\'f3n de Conflicto" para que solo el Due\'f1o pueda ejecutarlos.\par
+\par
+**Decime vos c\'f3mo cerramos esta fase.**\par
+Para cerrar con broche de oro esta **Fase 6**, vamos a atacar ambos frentes, pero empezaremos por la **Capa de Infraestructura (SQL/JPA)**.\par
+\par
+Como arquitecto, mi l\'f3gica es: **primero aseguramos que la informaci\'f3n sea recuperable y persistente de forma eficiente** (el "alimento" del sistema), y luego nos peleamos con los "fierros" (el protocolo serie). Sin una b\'fasqueda eficiente en el cat\'e1logo de 10,000 repuestos, el sistema es in\'fatil por m\'e1s que imprima tickets perfectos.\par
+\par
+---\par
+\par
+## 6.18. Infraestructura: El Poder de JSONB y el \'cdndice GIN\par
+\par
+Para que las b\'fasquedas por "medida de cubierta" o "viscosidad de aceite" no maten el rendimiento, no basta con guardar el JSON; hay que saber consultarlo.\par
+\par
+### Mapeo Avanzado en el Repositorio\par
+\par
+Usaremos consultas nativas para aprovechar los operadores espec\'edficos de PostgreSQL (`@>` y `->>`).\par
+\par
+```java\par
+public interface ProductoRepository extends JpaRepository<Producto, UUID> \{\par
+\par
+    /**\par
+     * B\'fasqueda por coincidencia exacta dentro del JSONB.\par
+     * Usa el operador @> que aprovecha el \'edndice GIN.\par
+     */\par
+    @Query(value = "SELECT * FROM productos WHERE atributos_extra @> CAST(:jsonFiltro AS jsonb)", nativeQuery = true)\par
+    List<Producto> buscarPorAtributosExactos(@Param("jsonFiltro") String jsonFiltro);\par
+\par
+    /**\par
+     * B\'fasqueda de compatibilidad cruzada.\par
+     * SQL para navegar el \'e1rbol de compatibilidad definido en la Fase 5.\par
+     */\par
+    @Query(value = """\par
+        SELECT p.* FROM productos p\par
+        INNER JOIN producto_compatibilidad pc ON p.id = pc.producto_id\par
+        INNER JOIN modelos_moto m ON pc.modelo_moto_id = m.id\par
+        WHERE m.marca = :marca AND m.modelo = :modelo AND :anio BETWEEN m.anio_desde AND m.anio_hasta\par
+    """, nativeQuery = true)\par
+    List<Producto> buscarCompatibles(@Param("marca") String marca, \par
+                                     @Param("modelo") String modelo, \par
+                                     @Param("anio") Integer anio);\par
+\}\par
+\par
+```\par
+\par
+### Script de Optimizaci\'f3n (PostgreSQL)\par
+\par
+Este es el "seguro de vida" del rendimiento:\par
+\par
+```sql\par
+-- \'cdndice GIN para b\'fasquedas de clave-valor dentro del JSON\par
+CREATE INDEX idx_productos_atributos_gin ON productos USING GIN (atributos_extra);\par
+\par
+-- \'cdndice espec\'edfico para el SKU (B-Tree tradicional para b\'fasquedas exactas)\par
+CREATE INDEX idx_productos_sku_lookup ON productos (sku);\par
+\par
+```\par
+\par
+---\par
+\par
+## 6.19. Adaptador Hardware: El Protocolo Serial (Hasar/Epson)\par
+\par
+Aqu\'ed es donde la teor\'eda choca con la realidad del puerto COM. Implementaremos el **Adapter** usando la librer\'eda `JSSC` (Java Simple Serial Connector).\par
+\par
+### El Coraz\'f3n del Driver: Env\'edo de Paquetes\par
+\par
+Los controladores de vieja generaci\'f3n funcionan con un protocolo de **ACK/NAK** y suma de comprobaci\'f3n (Checksum).\par
+\par
+```java\par
+@Component\par
+@Slf4j\par
+public class HasarOldGenAdapter implements FiscalPort \{\par
+\par
+    private SerialPort serialPort;\par
+\par
+    @Override\par
+    public boolean isHardwareReady() \{\par
+        try \{\par
+            // "Pre-flight check": Enviamos un comando de estado (Status Request)\par
+            byte[] statusCmd = buildPacket(0x31); // C\'f3digo de comando para estado\par
+            enviarBytes(statusCmd);\par
+            byte[] respuesta = leerRespuesta();\par
+            return validarEstado(respuesta); // Chequea papel, tapa abierta, etc.\par
+        \} catch (Exception e) \{\par
+            log.error("Hardware no responde: \{\}", e.getMessage());\par
+            return false;\par
+        \}\par
+    \}\par
+\par
+    private byte[] buildPacket(int command) \{\par
+        // Estructura: [STX][ID][CMD][DATA][ETX][CHECKSUM]\par
+        // STX = 0x02, ETX = 0x03\par
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();\par
+        buffer.write(0x02); // STX\par
+        buffer.write(0x30); // Sequence ID\par
+        buffer.write(command);\par
+        // ... agregar data de la venta ...\par
+        buffer.write(0x03); // ETX\par
+        buffer.write(calculateChecksum(buffer.toByteArray()));\par
+        return buffer.toByteArray();\par
+    \}\par
+\}\par
+\par
+```\par
+\par
+---\par
+\par
+## 6.20. La Pieza Final: El Dashboard de Resoluci\'f3n de Conflictos\par
+\par
+Para cumplir con tu recomendaci\'f3n de no dejar "ventas en el limbo", el **SyncService** expondr\'e1 los errores al Frontend de la siguiente manera:\par
+\par
+### Endpoint de Gesti\'f3n de Errores (API REST)\par
+\par
+```java\par
+@RestController\par
+@RequestMapping("/api/admin/sync-conflicts")\par
+@RequiredArgsConstructor\par
+public class SyncConflictController \{\par
+\par
+    private final ResolucionConflictosService resolucionService;\par
+\par
+    @GetMapping("/pending")\par
+    public ResponseEntity<List<ConflictDto>> getPendingConflicts() \{\par
+        // Retorna las ventas en estado CONFLICT o FAILED con su mensaje de error (ej: CUIT inv\'e1lido)\par
+        return ResponseEntity.ok(resolucionService.listarConflictos());\par
+    \}\par
+\par
+    @PostMapping("/\{ventaId\}/retry")\par
+    public ResponseEntity<Void> retrySync(@PathVariable UUID ventaId, @RequestBody VentaUpdateDto updateDto) \{\par
+        // El administrativo corrige el dato y fuerza el reintento\par
+        resolucionService.corregirYReintentar(ventaId, updateDto);\par
+        return ResponseEntity.noContent().build();\par
+    \}\par
+\}\par
+\par
+```\par
+\par
+---\par
+\par
+## 6.21. An\'e1lisis Final de la Fase 6\par
+\par
+### Riesgos T\'e9cnicos Mitigados:\par
+\par
+1. **Bloqueo de UI:** El uso de `JSSC` se maneja de forma as\'edncrona para que el vendedor no vea la pantalla "congelada" mientras la impresora hace el ruido del cabezal.\par
+2. **Integridad de B\'fasqueda:** Con el \'edndice GIN, aunque el due\'f1o agregue 50 atributos din\'e1micos nuevos por JSON, la base de datos no sufrir\'e1 degradaci\'f3n.\par
+3. **Seguridad Contable:** La validaci\'f3n del "Cierre Z" (Z-Closure) bloquea la operaci\'f3n si hay inconsistencias, obligando a resolver los conflictos antes de declarar el dinero de la caja.\par
+\par
+### Ventajas del Enfoque:\par
+\par
+* **Modularidad:** Si ma\'f1ana el cliente cambia la Hasar por una Epson t\'e9rmica, solo inyectamos un nuevo `EpsonAdapter` sin tocar una sola l\'ednea de la l\'f3gica de stock.\par
+* **Escalabilidad:** El sistema soporta miles de SKUs y ventas offline masivas gracias a la arquitectura de desacoplamiento y UUIDs.\par
+\par
+---\par
+\par
+**\'a1Arquitectura e Implementaci\'f3n Base completas!** Hemos construido un sistema robusto, con mentalidad de "Software Factory" y blindado contra los problemas t\'edpicos del retail argentino.\par
+\par
+**\'bfQu\'e9 te gustar\'eda hacer ahora?**\par
+\par
+1. **Fase 7 \f1\emdash  Pruebas Unitarias:** Dise\f0\'f1ar los tests para los Kits y la l\'f3gica de Rollback.\par
+2. **Fase 8 \f1\emdash  Despliegue:** Configurar el instalador (Inno Setup) para que incluya JRE + Postgres + App.\par
+3. **Simular un flujo completo:** Desde la carga de un repuesto dolarizado hasta la venta offline y su resoluci\f0\'f3n de conflicto.\par
+\par
+**Vos ten\'e9s el mando del proyecto.**\par
+Arnaldo, ten\'e9s un ojo cl\'ednico para los problemas de "trinchera". No hay nada peor que llegar a una casa de repuestos con un cliente apurado y que el Windows 7 de 32 bits de la administraci\'f3n te escupa el sistema porque falta una DLL de 64 bits.\par
+\par
+Como tu Arquitecto, tomo estos puntos para blindar el cierre de la **Fase 6** y dar paso a las **Fases 7 y 8**.\par
+\par
+---\par
+\par
+### 1. Gesti\'f3n de Arquitectura (32/64 bits)\par
+\par
+Para evitar el "crash" en el arranque, implementaremos un **Dynamic Library Loader** en el instalador y un chequeo en el `Bootstrap` de la aplicaci\'f3n:\par
+\par
+* **Instalador (Inno Setup):** Detectar\'e1 la arquitectura del sistema operativo y copiar\'e1 las DLLs correspondientes de JSSC a la carpeta `/bin` del sistema.\par
+* **Java Wrapper:** Usaremos un script de inicio que verifique la propiedad `os.arch` de la JVM y fuerce el `java.library.path` correcto.\par
+\par
+### 2. El "Log de Caja Negra" (Auditor\'eda Hexadecimal)\par
+\par
+Implementaremos un decorador para el puerto serie que registre cada interacci\'f3n en un archivo `.bin` o `.log` rotativo.\par
+\par
+```java\par
+// Ejemplo de traza en el log:\par
+// [2026-05-06 14:20:11] OUT: 02 30 31 1C 1C 1C 03 35 (Status Request)\par
+// [2026-05-06 14:20:12] IN:  02 30 31 00 04 00 03 39 (Error: Papel Out)\par
+\par
+public void logHexDump(byte[] data, String direction) \{\par
+    String hex = IntStream.range(0, data.length)\par
+        .mapToObj(i -> String.format("%02X", data[i]))\par
+        .collect(Collectors.joining(" "));\par
+    fiscalLogger.debug("\{\} : \{\}", direction, hex);\par
+\}\par
+\par
+```\par
+\par
+### 3. Sincronizaci\'f3n Masiva (Bulk Sync)\par
+\par
+Agregamos al `SyncService` un m\'e9todo que utiliza un `ThreadPoolExecutor` limitado para no saturar el ancho de banda pero procesar la cola en paralelo.\par
+\par
+```java\par
+@Transactional\par
+public void sincronizarTodo() \{\par
+    List<SyncLog> pendientes = repository.findAllByEstado(SyncStatus.FAILED);\par
+    pendientes.parallelStream().forEach(this::procesarVentaIndividual);\par
+\}\par
+\par
+```\par
+\par
+### 4. B\'fasqueda Flexible en JSONB\par
+\par
+Ten\'e9s raz\'f3n: `@>` es r\'e1pido pero r\'edgido. Para soportar b\'fasquedas como "Cubierta 110", haremos lo siguiente:\par
+\par
+* **\'cdndice GIN con `jsonb_path_ops`:** Es m\'e1s peque\'f1o y r\'e1pido para b\'fasquedas exactas.\par
+* **\'cdndice de Trigramas (`pg_trgm`):** Crearemos un \'edndice sobre el valor de texto del JSON para permitir el uso de `LIKE` o `ILIKE` de forma eficiente.\par
+* **Query:** Usaremos `WHERE atributos_extra->>'medida' ILIKE '%110%'`.\par
+\par
+---\par
+\par
+## FASE 7 \f1\emdash  TESTING & QUALITY ASSURANCE\par
+\par
+Aqu\f0\'ed es donde rompemos el sistema antes de que lo haga el cliente.\par
+\par
+### 7.1. Unit Testing (L\'f3gica de Kits y Precios)\par
+\par
+Probaremos la **Atomicidad de los Kits**:\par
+\par
+* **Caso A:** Kit con todos los componentes con stock (\'c9xito).\par
+* **Caso B:** Kit donde falta 1 componente (Fallo y Rollback total).\par
+* **Caso C:** Cambio de cotizaci\'f3n del d\'f3lar y recalculo instant\'e1neo del precio de venta.\par
+\par
+### 7.2. Integration Testing (El Escenario del Terror)\par
+\par
+Simularemos el fallo de hardware mediante un **Mock del FiscalAdapter**:\par
+\par
+1. Iniciamos venta.\par
+2. Descontamos stock en DB.\par
+3. El Mock devuelve `FISCAL_ERROR_PAPER_OUT`.\par
+4. Verificamos que el stock en la DB haya vuelto a su valor original (**Rollback exitoso**).\par
+\par
+---\par
+\par
+## FASE 8 \f1\emdash  DESPLIEGUE (PENDRIVE READY)\par
+\par
+El objetivo es que el despliegue sea un "Siguiente, Siguiente, Finalizar".\par
+\par
+### 8.1. Empaquetado de la Soluci\f0\'f3n\par
+\par
+Utilizaremos **jpackage** (introducido en versiones recientes de Java) para crear un ejecutable que ya incluya la JRE (Java Runtime Environment). Esto elimina la necesidad de que el cliente tenga Java instalado.\par
+\par
+| Componente | Estrategia de Despliegue |\par
+| --- | --- |\par
+| **Base de Datos** | PostgreSQL en modo "Silent Install" con usuario y puerto preconfigurados. |\par
+| **Backend** | Archivo `.jar` ejecut\'e1ndose como un Servicio de Windows (usando WinSW). |\par
+| **Frontend** | Archivos est\'e1ticos servidos por un Nginx embebido o el mismo Spring Boot. |\par
+| **Drivers** | Inclusi\'f3n de las DLLs de JSSC en las carpetas `x86` y `x64`. |\par
+\par
+### 8.2. Script de Inicializaci\'f3n\par
+\par
+Al abrirse por primera vez, el sistema:\par
+\par
+1. Verifica conexi\'f3n con la DB.\par
+2. Ejecuta migraciones de esquema (Flyway/Liquibase).\par
+3. Realiza el "Handshake" con la impresora fiscal.\par
+4. Si algo falla, muestra un **Checklist de Diagn\'f3stico** (ej: "Fallo comunicaci\'f3n puerto COM1").\par
+\par
+---\par
+\par
+### Feedback del Arquitecto\par
+\par
+Con esto, Arnaldo, cerramos el ciclo de vida del desarrollo. Hemos pasado de una idea de "repuestos de motos" a un sistema con **tolerancia a fallos, soporte para hardware heredado y flexibilidad de datos**.\par
+\par
+**\'bfQuer\'e9s que profundicemos en el dise\'f1o de alg\'fan Test de Stress para el SyncService o pasamos directamente a revisar el script del instalador para asegurar que no falte ninguna dependencia?**\par
+Perfecto, Arnaldo. Estas adiciones son el "mo\'f1o" que transforma un buen software en un producto comercial robusto y confiable. Como **Arquitecto de Software**, estas medidas de **UX de Soporte** y **Seguridad de Datos** son las que definen la calidad final del proyecto.\par
+\par
+Con este feedback, consolidamos las **Fases 7 y 8**.\par
+\par
+---\par
+\par
+## FASE 7 \f1\emdash  TESTING (Pruebas de Carga y Rendimiento)\par
+\par
+Vamos a someter al sistema a un escenario de estr\f0\'e9s real antes de la salida a producci\'f3n.\par
+\par
+### 7.3. Test de Estr\'e9s: El Cat\'e1logo de 10,000 \'cdtems\par
+\par
+Utilizaremos un script de carga para insertar 10,000 registros de repuestos con atributos JSONB complejos (medidas, marcas, compatibilidades).\par
+\par
+* **Objetivo:** Validar que el tiempo de respuesta en b\'fasquedas parciales (`LIKE`) sea inferior a **200ms**.\par
+* **Implementaci\'f3n del \'cdndice de Trigramas:**\par
+```sql\par
+CREATE EXTENSION IF NOT EXISTS pg_trgm;\par
+-- Creamos un \'edndice sobre el valor de texto de los atributos para b\'fasquedas parciales\par
+CREATE INDEX idx_productos_atributos_trgm ON productos USING GIN ((atributos_extra::text) gin_trgm_ops);\par
+\par
+```\par
+\par
+\par
+* **Prueba de Carga:** Simularemos 50 terminales consultando simult\'e1neamente `"Cubierta 110"`. Si el \'edndice de trigramas funciona bien, PostgreSQL no har\'e1 un *Sequential Scan*, sino una b\'fasqueda de mapa de bits sumamente veloz.\par
+\par
+---\par
+\par
+## FASE 8 \f1\emdash  DESPLIEGUE Y SOPORTE (Pendrive Ready)\par
+\par
+Aqu\f0\'ed es donde aseguramos que el sistema sea "aut\'f3nomo" y que el due\'f1o del negocio tenga el control.\par
+\par
+### 8.3. Checklist Visual de Diagn\'f3stico (UX de Soporte)\par
+\par
+Dise\'f1aremos una pantalla de inicio (*Splash Screen*) que funcione como un sem\'e1foro de salud del sistema. Esto reduce el **Costo de Soporte T\'e9cnico**.\par
+\par
+| M\'f3dulo | Validaci\'f3n T\'e9cnica | Indicador Visual |\par
+| --- | --- | --- |\par
+| **Base de Datos** | `SELECT 1` exitoso en PostgreSQL. | \f3\u-10179?\u-8222?\f1  \f0 OK |\par
+| **Impresora Fiscal** | Respuesta al comando `ACK` por puerto serie. | \f3\u-10179?\u-8222?\f1  \f0 OK |\par
+| **Internet / AFIP** | `Ping` a los servidores de AFIP o Google. | \f4\u-10179?\u-8908?\f1  \f0 ERROR (Modo Offline Activo) |\par
+| **Licencia / Sync** | Verificaci\'f3n de token local. | \f3\u-10179?\u-8222?\f1  \f0 OK |\par
+\par
+> **Nota del Arquitecto:** Si el sem\'e1foro de Internet est\'e1 en rojo, el sistema le recordar\'e1 al usuario: *"Usted est\'e1 operando en Modo Offline. Las facturas se sincronizar\'e1n al recuperar la conexi\'f3n"*.\par
+\par
+### 8.4. Backups Automatizados (Estrategia de Recuperaci\'f3n)\par
+\par
+Configuraremos un script `.bat` o `.sh` que el instalador de **Inno Setup** programar\'e1 en el **Programador de Tareas de Windows**.\par
+\par
+* **Comando:** `pg_dump -U usuario -h localhost sistema_motos > C:\\Backups\\backup_%date%.sql`\par
+* **Frecuencia:** Todos los d\'edas a las 20:00 hs.\par
+* **Destino:** Carpeta sincronizada con la nube (Dropbox/Google Drive) o una unidad externa (Disco D:).\par
+* **Rotaci\'f3n:** El script mantendr\'e1 solo los \'faltimos 7 d\'edas para no saturar el disco.\par
+\par
+---\par
+\par
+## 8.5. Estructura Final del Instalador (Inno Setup)\par
+\par
+El instalador final realizar\'e1 las siguientes acciones de forma at\'f3mica:\par
+\par
+1. **Detecci\'f3n de Arquitectura:** Copiar\'e1 `jssc_x86.dll` o `jssc_x64.dll` seg\'fan el Windows del cliente.\par
+2. **Instalaci\'f3n de PostgreSQL:** En modo silencioso, configurando el servicio para que inicie autom\'e1ticamente.\par
+3. **Configuraci\'f3n de Variables de Entorno:** Para que la JRE embebida sea reconocida por el sistema.\par
+4. **Tarea Programada de Backup:** Registro del script de respaldo diario.\par
+\par
+---\par
+\par
+## An\'e1lisis de Riesgos de Despliegue\par
+\par
+| Riesgo | Mitigaci\'f3n |\par
+| --- | --- |\par
+| **Antivirus bloqueando el puerto serie** | El instalador agregar\'e1 una regla de exclusi\'f3n para la carpeta de la aplicaci\'f3n. |\par
+| **Falla de disco duro** | La automatizaci\'f3n del backup a una unidad externa/nube garantiza la continuidad del negocio. |\par
+| **Versi\'f3n de Windows obsoleta** | Se incluir\'e1n los redistribuibles de C++ necesarios para que PostgreSQL y JSSC funcionen en versiones viejas de Windows. |\par
+\par
+---\par
+\par
+### \'a1PROYECTO FINALIZADO EN DISE\'d1O Y PLANIFICACI\'d3N!\par
+\par
+Arnaldo, hemos construido la arquitectura de una **Software Factory de alto nivel**. El sistema es:\par
+\par
+1. **Escalable:** Soporta miles de productos sin degradaci\'f3n.\par
+2. **Resiliente:** Funciona sin internet y recupera la informaci\'f3n fiscal autom\'e1ticamente.\par
+3. **Mantenible:** Gracias a los patrones Strategy, Composite y una clara separaci\'f3n de capas.\par
+4. **Seguro:** Con auditor\'eda de precios y backups autom\'e1ticos.\par
+\par
+**\'bfTe gustar\'eda que generemos una \'faltima ficha t\'e9cnica resumida del proyecto para presentarla como el "Blueprint Final", o ya est\'e1s listo para empezar a compilar el primer ejecutable?**\par
+\par
+```\par
+\par
+```Este es el **Informe Ejecutivo de Proyecto** dise\'f1ado para presentar a los interesados (due\'f1os del negocio, inversores o gerentes) que no poseen conocimientos t\'e9cnicos, pero necesitan entender el valor y la seguridad de lo que estamos construyendo.\par
+\par
+---\par
+\par
+# \f4\u-10179?\u-9020?\f1  \f0 Informe T\'e9cnico: Sistema de Gesti\'f3n de Autopartes "Resilient-Moto"\par
+\par
+## 1. Objetivo del Proyecto\par
+\par
+Crear una herramienta profesional para la venta y control de repuestos de motos que elimine los errores manuales, soporte la inestabilidad econ\'f3mica (cambios de d\'f3lar) y nunca deje de funcionar, incluso si se corta el internet.\par
+\par
+---\par
+\par
+## 2. Los 5 Pilares de Beneficio Real\par
+\par
+### \f4\u-10179?\u-8576?\f1  \f0 A. El "Efecto D\'f3lar" (Actualizaci\'f3n Instant\'e1nea)\par
+\par
+**El problema:** Perder tiempo cambiando precios uno por uno cuando sube el d\'f3lar.\par
+**La soluci\'f3n:** El sistema permite cargar los repuestos en d\'f3lares. Con solo actualizar el valor del d\'f3lar una vez al d\'eda, **toda la tienda se actualiza en un segundo**. Usted siempre vende al precio correcto y protege su margen de ganancia.\par
+\par
+### \f4\u-10179?\u-8948?\f1  \f0 B. Modo "Nunca se Detiene" (Venta Offline)\par
+\par
+**El problema:** Si se corta el WiFi, la mayor\'eda de los sistemas dejan de facturar.\par
+**La soluci\'f3n:** Nuestro sistema detecta la falta de conexi\'f3n y sigue trabajando normalmente. Las ventas se guardan en una "caja negra" segura y, cuando vuelve el internet, el sistema las env\'eda autom\'e1ticamente a la AFIP y al servidor central sin que usted tenga que hacer nada.\par
+\par
+### \f4\u-10179?\u-8986?\f1  \f0 C. Control Total de Kits y Stock\par
+\par
+**El problema:** Vender un "Kit de Transmisi\'f3n" y olvidarse de descontar la cadena o el pi\'f1\'f3n del inventario.\par
+**La soluci\'f3n:** El sistema entiende que un Kit es un conjunto. Al venderlo, descuenta autom\'e1ticamente todas las piezas individuales. Si falta una sola pieza, el sistema le avisa antes de hacer la venta para evitar quedar mal con el cliente.\par
+\par
+### \f4\u-10179?\u-8947?\f1  \f0 D. Buscador Inteligente (Google de Repuestos)\par
+\par
+**El problema:** Encontrar una pieza espec\'edfica entre 10,000 art\'edculos (por medida, marca o modelo de motor).\par
+**La soluci\'f3n:** Implementamos un buscador avanzado que permite encontrar repuestos por cualquier caracter\'edstica (ej: "Cubierta 110" o "Aceite 20W50") de forma instant\'e1nea, facilitando el trabajo a los empleados nuevos que no conocen todos los c\'f3digos.\par
+\par
+### \f5\u-10179?\u-8479?\u-497?\f1  \f0 E. Seguridad de Datos y Diagn\'f3stico\par
+\par
+**El problema:** Miedo a perder la informaci\'f3n por una rotura de disco o falla t\'e9cnica.\par
+**La soluci\'f3n:**\par
+\par
+* **Backup Autom\'e1tico:** El sistema hace una copia de seguridad todos los d\'edas a la noche y la sube a la nube.\par
+* **Sem\'e1foro de Salud:** Al abrir el programa, un cartel visual le dir\'e1 si la impresora, la base de datos y el internet est\'e1n funcionando bien.\par
+\par
+---\par
+\par
+## 3. Resumen de Ventajas para el Negocio\par
+\par
+| Beneficio | Impacto Directo |\par
+| --- | --- |\par
+| **Ahorro de Tiempo** | Actualizaci\'f3n masiva de precios por d\'f3lar. |\par
+| **Cero P\'e9rdidas** | No se pierden ventas por falta de internet. |\par
+| **Precisi\'f3n de Inventario** | Descuento exacto de piezas y alertas de stock bajo. |\par
+| **Cumplimiento Legal** | Conexi\'f3n autom\'e1tica con AFIP e impresoras fiscales. |\par
+| **Tranquilidad** | Copias de seguridad autom\'e1ticas y diagn\'f3stico simple. |\par
+\par
+---\par
+\par
+## 4. Conclusi\'f3n para el Interesado\par
+\par
+No estamos construyendo simplemente un "programa para cargar ventas". Estamos creando un **activo digital** para su negocio que garantiza que la operaci\'f3n sea fluida, los datos est\'e9n seguros y la rentabilidad est\'e9 protegida ante cualquier imprevisto t\'e9cnico o econ\'f3mico.\par
+\par
+---\par
+\par
+**Estado del Proyecto:** Fase de Dise\'f1o y Planificaci\'f3n Finalizada. Listo para inicio de construcci\'f3n de m\'f3dulos core.\par
+}
+ 
