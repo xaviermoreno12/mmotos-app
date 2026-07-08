@@ -32,7 +32,7 @@ Fron-end/
 src/main/resources/static/
 
 # Archivos generados/temporales
-*.sql
+# *.sql — NO excluir: las migraciones Flyway son .sql y deben estar en git
 gen_*.py
 verificar_*.py
 reporte-*.pdf

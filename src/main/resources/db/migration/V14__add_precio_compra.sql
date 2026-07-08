@@ -1,0 +1,1 @@
+ALTER TABLE productos ADD COLUMN IF NOT EXISTS precio_compra NUMERIC(12,2);
