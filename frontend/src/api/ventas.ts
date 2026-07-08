@@ -1,6 +1,16 @@
 import { client } from './client';
 import type { VentaRequest, VentaResponse, VentaListDTO, VentaDetalleCompletoDTO, CajaResumenDTO, CajaDTO, AbrirCajaRequest, CerrarCajaRequest } from '../types';
 
+export async function descargarFacturaPdf(id: string, nombreArchivo: string): Promise<void> {
+  const response = await client.get(`/api/ventas/${id}/factura-pdf`, { responseType: 'blob' });
+  const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombreArchivo;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function realizarVenta(request: VentaRequest): Promise<VentaResponse> {
   const response = await client.post<VentaResponse>('/api/ventas', request);
   return response.data;

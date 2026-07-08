@@ -5,6 +5,7 @@ import com.mmotos.domain.port.NotificationPort;
 import com.mmotos.infrastructure.output.fiscal.*;
 import com.mmotos.infrastructure.output.notification.N8nAdapter;
 import com.mmotos.infrastructure.output.notification.TelegramAdapter;
+import com.mmotos.infrastructure.output.persistence.jpa.ConfiguracionFiscalJpaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -16,8 +17,11 @@ public class FiscalConfig {
     private static final Logger log = LoggerFactory.getLogger(FiscalConfig.class);
 
     @Bean
-    public FiscalPort fiscalPort(AppProperties props) {
-        String modo = props.fiscal().modo().toUpperCase();
+    public FiscalPort fiscalPort(AppProperties props, ConfiguracionFiscalJpaRepository fiscalRepo) {
+        // DB overrides yml: el modo guardado por el usuario en Ajustes tiene prioridad
+        String modo = fiscalRepo.findByAlias("modo_fiscal")
+            .map(e -> e.getValor().toUpperCase())
+            .orElse(props.fiscal().modo().toUpperCase());
         log.info("Modo fiscal configurado: {}", modo);
 
         return switch (modo) {

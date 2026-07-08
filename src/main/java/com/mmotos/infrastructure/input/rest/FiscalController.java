@@ -8,11 +8,14 @@ import com.mmotos.infrastructure.output.persistence.jpa.ConfiguracionFiscalJpaRe
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.security.KeyPair;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/fiscal")
@@ -67,5 +70,31 @@ public class FiscalController {
             "csr", csr != null ? csr : "",
             "generado", csr != null ? "si" : "no"
         );
+    }
+
+    private static final Set<String> MODOS_VALIDOS = Set.of("NO_FISCAL", "AFIP", "HASAR");
+
+    @GetMapping("/estado")
+    @PreAuthorize("hasAnyRole('CAJERO', 'DUENO')")
+    public Map<String, String> estado() {
+        String modo = fiscalRepo.findByAlias("modo_fiscal")
+            .map(ConfiguracionFiscalEntity::getValor)
+            .orElse("NO_FISCAL");
+        return Map.of("modo", modo);
+    }
+
+    @PutMapping("/configurar")
+    @PreAuthorize("hasRole('DUENO')")
+    public Map<String, String> configurar(@RequestBody Map<String, String> body) {
+        String modo = body.getOrDefault("modo", "NO_FISCAL").toUpperCase();
+        if (!MODOS_VALIDOS.contains(modo)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Modo inválido: " + modo);
+        }
+        fiscalRepo.findByAlias("modo_fiscal").ifPresentOrElse(
+            e -> { e.setValor(modo); fiscalRepo.save(e); },
+            () -> fiscalRepo.save(new ConfiguracionFiscalEntity("modo_fiscal", modo))
+        );
+        log.info("Modo fiscal actualizado a: {}", modo);
+        return Map.of("modo", modo, "mensaje", "Modo guardado. Reiniciá el servidor para aplicar los cambios.");
     }
 }

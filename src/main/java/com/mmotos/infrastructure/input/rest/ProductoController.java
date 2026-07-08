@@ -175,24 +175,27 @@ public class ProductoController {
      * con columnas: ID | NOMBRE | CÓDIGO | COSTO | PRECIO | STOCK | VER
      * Matching por nombre (case-insensitive, búsqueda fuzzy).
      */
+    /**
+     * Columnas esperadas en el XLSX: ID | NOMBRE | CÓDIGO | COSTO | PRECIO | STOCK | VER
+     * - Filas con precio <= 0 se saltan silenciosamente (el proveedor usa -1 como "sin precio").
+     * - Si el producto no existe por nombre, se crea automáticamente con el CÓDIGO como SKU.
+     */
     @PostMapping(value = "/actualizar-precios", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('DUENO')")
     public Map<String, Object> actualizarPrecios(@RequestParam("archivo") MultipartFile archivo) {
         if (archivo.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo está vacío");
 
-        int actualizados = 0, noEncontrados = 0;
+        int actualizados = 0, creados = 0, saltados = 0;
         List<String> errores = new ArrayList<>();
-        List<String> sinMatch = new ArrayList<>();
 
         try {
-            // Parsear XLSX como ZIP (sin Apache POI)
             List<String[]> filas = leerXlsx(archivo.getBytes());
 
-            for (int i = 1; i < filas.size(); i++) { // saltar encabezado
+            for (int i = 1; i < filas.size(); i++) {
                 String[] cols = filas.get(i);
                 if (cols.length < 5) continue;
 
-                String nombre  = cols[1].trim();
+                String nombre    = cols[1].trim();
                 String costoStr  = cols[3].trim();
                 String precioStr = cols[4].trim();
                 if (nombre.isEmpty() || precioStr.isEmpty()) continue;
@@ -201,15 +204,31 @@ public class ProductoController {
                     BigDecimal precio = new BigDecimal(precioStr.replace(",", "."));
                     BigDecimal costo  = costoStr.isEmpty() ? null : new BigDecimal(costoStr.replace(",", "."));
 
-                    // Buscar producto por nombre (fuzzy)
-                    var matches = buscarProductoUseCase.buscar(new ProductoFiltroDTO(null, null, null, nombre));
-                    if (matches.isEmpty()) { sinMatch.add(nombre); noEncontrados++; continue; }
+                    // Saltar silenciosamente filas sin precio válido (el proveedor usa -1 como centinela)
+                    if (precio.compareTo(BigDecimal.ZERO) <= 0) {
+                        saltados++;
+                        continue;
+                    }
 
-                    var prod = matches.get(0);
-                    actualizarProductoUseCase.actualizar(prod.id(), new ActualizarProductoRequest(
-                        null, precio, null, null, null, null, null, costo
-                    ));
-                    actualizados++;
+                    var matches = buscarProductoUseCase.buscar(new ProductoFiltroDTO(null, null, null, nombre));
+
+                    if (matches.isEmpty()) {
+                        // Crear producto nuevo con los datos del Excel
+                        String codigoRaw = cols.length > 2 ? cols[2].trim() : "";
+                        String sku = !codigoRaw.isEmpty() ? codigoRaw
+                                   : (!cols[0].trim().isEmpty() ? cols[0].trim()
+                                   : "AUTO-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+                        crearProductoUseCase.crear(new CrearProductoRequest(
+                            sku, nombre, precio, "ARS", 0, 0, null, costo
+                        ));
+                        creados++;
+                    } else {
+                        var prod = matches.get(0);
+                        actualizarProductoUseCase.actualizar(prod.id(), new ActualizarProductoRequest(
+                            null, precio, null, null, null, null, null, costo
+                        ));
+                        actualizados++;
+                    }
                 } catch (Exception e) {
                     errores.add("Fila " + (i + 1) + " (" + nombre + "): " + e.getMessage());
                 }
@@ -218,12 +237,12 @@ public class ProductoController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error al procesar el archivo: " + e.getMessage());
         }
 
-        return Map.of(
-            "actualizados",  actualizados,
-            "noEncontrados", noEncontrados,
-            "sinMatch",      sinMatch.stream().limit(20).toList(),
-            "errores",       errores.stream().limit(20).toList()
-        );
+        Map<String, Object> resultado = new LinkedHashMap<>();
+        resultado.put("actualizados", actualizados);
+        resultado.put("creados", creados);
+        resultado.put("saltados", saltados);
+        resultado.put("errores", errores.stream().limit(20).toList());
+        return resultado;
     }
 
     /** Lee un archivo XLSX (ZIP con XML) y devuelve filas como arrays de strings. */

@@ -5,7 +5,7 @@ import { Header } from '../components/layout/Header';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Spinner';
 import { useVentasList } from '../hooks/useVentasList';
-import { anularVenta } from '../api/ventas';
+import { anularVenta, descargarFacturaPdf } from '../api/ventas';
 import type { VentaListDTO } from '../types';
 
 function formatDate(iso: string) {
@@ -46,9 +46,20 @@ export function VentasPage() {
   const [anulando, setAnulando] = useState<VentaListDTO | null>(null);
   const [motivo, setMotivo] = useState('');
   const [anulError, setAnulError] = useState('');
+  const [descargando, setDescargando] = useState<string | null>(null);
 
   const { desde, hasta } = getRangoFechas(rango);
   const { data: ventas, isLoading, error } = useVentasList(desde, hasta);
+
+  const handleDescargarPdf = async (v: VentaListDTO) => {
+    setDescargando(v.id);
+    const nombre = `ticket-${v.numeroTicket ?? v.id.slice(0, 8)}.pdf`;
+    try {
+      await descargarFacturaPdf(v.id, nombre);
+    } finally {
+      setDescargando(null);
+    }
+  };
 
   const anularMut = useMutation({
     mutationFn: () => anularVenta(anulando!.id, motivo),
@@ -109,12 +120,13 @@ export function VentasPage() {
                   <th className="text-center px-4 py-3">Cajero</th>
                   <th className="text-center px-4 py-3">Pagos</th>
                   <th className="text-center px-4 py-3">Estado</th>
+                  <th className="px-4 py-3"></th>
                   {rol === 'DUENO' && <th className="px-4 py-3"></th>}
                 </tr>
               </thead>
               <tbody>
                 {ventasFiltradas.length === 0 ? (
-                  <tr><td colSpan={rol === 'DUENO' ? 8 : 7} className="px-4 py-12 text-center">
+                  <tr><td colSpan={rol === 'DUENO' ? 9 : 8} className="px-4 py-12 text-center">
                     <EmptyState label="Sin ventas registradas" />
                   </td></tr>
                 ) : ventasFiltradas.map(v => (
@@ -135,6 +147,18 @@ export function VentasPage() {
                           'bg-red-900/30 text-red-400'
                         }`}>{v.estadoFiscal}</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => handleDescargarPdf(v)}
+                        disabled={descargando === v.id}
+                        title="Descargar PDF"
+                        className="text-on-surface-variant hover:text-primary disabled:opacity-40 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">
+                          {descargando === v.id ? 'hourglass_empty' : 'download'}
+                        </span>
+                      </button>
                     </td>
                     {rol === 'DUENO' && (
                       <td className="px-4 py-3 text-center">

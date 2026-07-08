@@ -53,6 +53,12 @@ public class VentaTransaccionHelper {
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + item.productoId()));
 
             BigDecimal precioHistorico = repuesto.getPrecio().calcularEnPesos(cotizacion);
+            if (precioHistorico.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                    "El producto '" + repuesto.getNombre() + "' tiene precio $0 o inválido. " +
+                    "Actualice el precio en la sección Productos antes de vender."
+                );
+            }
             builder.agregarLinea(repuesto.getId(), repuesto.getSku(), repuesto.getNombre(),
                                  item.cantidad(), precioHistorico);
 

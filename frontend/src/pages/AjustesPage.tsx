@@ -1,10 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '../components/layout/Header';
 import { Spinner } from '../components/ui/Spinner';
 import { client } from '../api/client';
 import { actualizarCotizacion } from '../api/ventas';
 
 const rol = localStorage.getItem('mmotos_rol');
+
+type ModoFiscal = 'NO_FISCAL' | 'AFIP' | 'HASAR';
+
+const MODO_INFO: Record<ModoFiscal, { label: string; color: string; desc: string }> = {
+  NO_FISCAL: { label: 'Sin fiscal', color: 'bg-surface-container text-on-surface-variant border border-outline-variant', desc: 'Tickets internos. No emite comprobantes fiscales.' },
+  AFIP:      { label: 'AFIP / ARCA', color: 'bg-green-900/40 text-green-400 border border-green-700/40', desc: 'Facturación electrónica real vía ARCA. Las ventas emiten comprobantes legales.' },
+  HASAR:     { label: 'Controlador HASAR', color: 'bg-orange-900/40 text-orange-400 border border-orange-700/40', desc: 'Impresora fiscal física por puerto serie.' },
+};
 
 const DN_DEFRANCE = {
   cn: 'DEFRANCE MATIAS ELIAN',
@@ -18,6 +26,48 @@ const DN_DEFRANCE = {
 export function AjustesPage() {
   const [confirmar, setConfirmar] = useState(false);
   const [apagando, setApagando] = useState(false);
+
+  // ── Fiscal mode state ─────────────────────────────────────────────
+  const [modoActual, setModoActual] = useState<ModoFiscal>('NO_FISCAL');
+  const [modoSeleccionado, setModoSeleccionado] = useState<ModoFiscal | null>(null);
+  const [confirmFiscal1, setConfirmFiscal1] = useState(false);
+  const [confirmFiscal2, setConfirmFiscal2] = useState(false);
+  const [fiscalLoading, setFiscalLoading] = useState(false);
+  const [fiscalOk, setFiscalOk] = useState('');
+  const [fiscalError, setFiscalError] = useState('');
+
+  useEffect(() => {
+    client.get<{ modo: string }>('/api/fiscal/estado')
+      .then(r => setModoActual(r.data.modo as ModoFiscal))
+      .catch(() => {});
+  }, []);
+
+  const iniciarCambioModo = (modo: ModoFiscal) => {
+    if (modo === modoActual) return;
+    setModoSeleccionado(modo);
+    setConfirmFiscal1(true);
+    setConfirmFiscal2(false);
+    setFiscalOk(''); setFiscalError('');
+  };
+
+  const confirmarCambioModo = async () => {
+    if (!modoSeleccionado) return;
+    setFiscalLoading(true); setFiscalError('');
+    try {
+      const r = await client.put<{ modo: string; mensaje: string }>('/api/fiscal/configurar', { modo: modoSeleccionado });
+      setModoActual(r.data.modo as ModoFiscal);
+      setFiscalOk(r.data.mensaje);
+      setConfirmFiscal1(false); setConfirmFiscal2(false); setModoSeleccionado(null);
+    } catch (e: any) {
+      setFiscalError(e.response?.data?.detail || 'Error al guardar el modo fiscal.');
+    } finally {
+      setFiscalLoading(false);
+    }
+  };
+
+  const cancelarCambioModo = () => {
+    setModoSeleccionado(null); setConfirmFiscal1(false); setConfirmFiscal2(false);
+  };
 
   const handleApagar = async () => {
     setApagando(true);
@@ -68,6 +118,112 @@ export function AjustesPage() {
     <div className="min-h-screen bg-surface-container">
       <Header title="Ajustes" />
       <div className="pt-11 p-5 space-y-5 max-w-xl">
+
+        {/* ── Modo Fiscal ── solo DUENO */}
+        {rol === 'DUENO' && (
+          <div className="card space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-on-surface mb-1 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-primary">receipt_long</span>
+                  Modo de facturación
+                </h3>
+                <p className="text-xs text-on-surface-variant">
+                  Controlá cómo se emiten los comprobantes en cada venta.
+                </p>
+              </div>
+              <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${MODO_INFO[modoActual].color}`}>
+                {MODO_INFO[modoActual].label}
+              </span>
+            </div>
+
+            {/* Advertencia modo activo */}
+            {modoActual !== 'NO_FISCAL' && (
+              <div className="flex items-start gap-2 bg-orange-900/20 border border-orange-700/40 rounded p-3 text-xs text-orange-300">
+                <span className="material-symbols-outlined text-[16px] flex-shrink-0 mt-0.5">warning</span>
+                <span>
+                  <strong>MODO FISCAL ACTIVO ({MODO_INFO[modoActual].label}).</strong>{' '}
+                  Las ventas emiten comprobantes reales ante AFIP/controlador físico.
+                </span>
+              </div>
+            )}
+
+            {/* Selector de modo */}
+            <div className="space-y-2">
+              {(Object.keys(MODO_INFO) as ModoFiscal[]).map(modo => (
+                <button
+                  key={modo}
+                  onClick={() => iniciarCambioModo(modo)}
+                  disabled={modo === modoActual}
+                  className={`w-full text-left px-3 py-3 rounded border transition-colors ${
+                    modo === modoActual
+                      ? 'border-primary/50 bg-primary/10 cursor-default'
+                      : 'border-outline-variant hover:border-outline hover:bg-surface-container-high'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-on-surface">{MODO_INFO[modo].label}</span>
+                    {modo === modoActual && (
+                      <span className="material-symbols-outlined text-primary text-[16px]">check_circle</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-on-surface-variant mt-0.5">{MODO_INFO[modo].desc}</p>
+                </button>
+              ))}
+            </div>
+
+            {/* Confirmación paso 1 */}
+            {confirmFiscal1 && modoSeleccionado && !confirmFiscal2 && (
+              <div className="border border-outline-variant rounded p-4 space-y-3 bg-surface-container-high">
+                <p className="text-sm text-on-surface">
+                  ¿Cambiar a <strong>{MODO_INFO[modoSeleccionado].label}</strong>?
+                </p>
+                <p className="text-xs text-on-surface-variant">{MODO_INFO[modoSeleccionado].desc}</p>
+                {modoSeleccionado !== 'NO_FISCAL' && (
+                  <p className="text-xs text-orange-300 bg-orange-900/20 border border-orange-700/30 rounded px-3 py-2">
+                    Este modo emite comprobantes fiscales reales. Asegurate de tener las credenciales ARCA o el hardware configurado correctamente.
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <button onClick={() => setConfirmFiscal2(true)} className="btn-primary text-xs px-4 py-1.5">
+                    Continuar
+                  </button>
+                  <button onClick={cancelarCambioModo} className="btn-secondary text-xs px-4 py-1.5">Cancelar</button>
+                </div>
+              </div>
+            )}
+
+            {/* Confirmación paso 2 — doble check */}
+            {confirmFiscal2 && modoSeleccionado && (
+              <div className="border border-error/40 rounded p-4 space-y-3 bg-error/5">
+                <p className="text-sm font-semibold text-on-surface">Confirmación final</p>
+                <p className="text-xs text-on-surface-variant">
+                  Estás a punto de cambiar el modo fiscal a <strong>{MODO_INFO[modoSeleccionado].label}</strong>.
+                  El cambio se aplica al reiniciar el servidor.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={confirmarCambioModo}
+                    disabled={fiscalLoading}
+                    className="btn-primary text-xs px-4 py-1.5 flex items-center gap-1.5"
+                  >
+                    {fiscalLoading ? <Spinner size="sm" /> : null}
+                    Sí, confirmar cambio
+                  </button>
+                  <button onClick={cancelarCambioModo} className="btn-secondary text-xs px-4 py-1.5">Cancelar</button>
+                </div>
+              </div>
+            )}
+
+            {fiscalOk && (
+              <div className="flex items-center gap-2 text-xs text-green-400 bg-green-900/20 border border-green-800/40 rounded px-3 py-2">
+                <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                {fiscalOk}
+              </div>
+            )}
+            {fiscalError && <p className="text-error text-xs py-2 px-3 bg-error-container/20 rounded border border-error-container/40">{fiscalError}</p>}
+          </div>
+        )}
 
         {/* Certificado Fiscal ARCA */}
         <div className="card space-y-4">

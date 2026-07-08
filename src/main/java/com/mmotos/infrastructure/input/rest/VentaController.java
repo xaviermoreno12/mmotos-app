@@ -11,13 +11,18 @@ import com.mmotos.application.usecase.ConsultarVentasUseCase;
 import com.mmotos.application.usecase.ModificarVentaUseCase;
 import com.mmotos.application.usecase.RealizarVentaUseCase;
 import com.mmotos.infrastructure.output.persistence.jpa.UsuarioJpaRepository;
+import com.mmotos.infrastructure.output.persistence.jpa.VentaJpaRepository;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -32,17 +37,23 @@ public class VentaController {
     private final AnularVentaUseCase anularVentaUseCase;
     private final ModificarVentaUseCase modificarVentaUseCase;
     private final UsuarioJpaRepository usuarioRepo;
+    private final VentaJpaRepository ventaRepo;
+    private final FacturaPdfService facturaPdfService;
 
     public VentaController(RealizarVentaUseCase realizarVentaUseCase,
                            ConsultarVentasUseCase consultarVentasUseCase,
                            AnularVentaUseCase anularVentaUseCase,
                            ModificarVentaUseCase modificarVentaUseCase,
-                           UsuarioJpaRepository usuarioRepo) {
+                           UsuarioJpaRepository usuarioRepo,
+                           VentaJpaRepository ventaRepo,
+                           FacturaPdfService facturaPdfService) {
         this.realizarVentaUseCase   = realizarVentaUseCase;
         this.consultarVentasUseCase = consultarVentasUseCase;
         this.anularVentaUseCase     = anularVentaUseCase;
         this.modificarVentaUseCase  = modificarVentaUseCase;
         this.usuarioRepo            = usuarioRepo;
+        this.ventaRepo              = ventaRepo;
+        this.facturaPdfService      = facturaPdfService;
     }
 
     @PostMapping
@@ -91,5 +102,19 @@ public class VentaController {
             .map(u -> u.getId())
             .orElse(null);
         return modificarVentaUseCase.ejecutar(id, req, usuarioId);
+    }
+
+    @GetMapping(value = "/{id}/factura-pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("hasAnyRole('CAJERO', 'DUENO')")
+    public ResponseEntity<byte[]> facturaPdf(@PathVariable UUID id) {
+        VentaDetalleCompletoDTO detalle = consultarVentasUseCase.porId(id);
+        String tipoFactura = ventaRepo.findById(id)
+            .map(v -> v.getTipoFactura())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Venta no encontrada"));
+        byte[] pdf = facturaPdfService.generar(detalle, tipoFactura);
+        String filename = "ticket-" + (detalle.numeroTicket() != null ? detalle.numeroTicket() : id.toString().substring(0, 8)) + ".pdf";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+        return ResponseEntity.ok().headers(headers).body(pdf);
     }
 }

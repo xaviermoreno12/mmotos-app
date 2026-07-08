@@ -44,6 +44,8 @@ export function PosPage() {
 
   const total = getTotal();
   const vuelto = montoPago - total;
+  const itemsSinPrecio = items.filter((i) => i.precioUnitario <= 0);
+  const tieneItemsSinPrecio = itemsSinPrecio.length > 0;
 
   const venta = useVenta({
     onSuccess: (data) => {
@@ -305,11 +307,21 @@ export function PosPage() {
             </div>
           )}
 
+          {/* Advertencia precio $0 */}
+          {tieneItemsSinPrecio && (
+            <div className="px-4 py-2">
+              <p className="text-xs text-error bg-error-container/20 px-3 py-2 rounded border border-error-container/40">
+                <span className="font-semibold">Precio inválido ($0):</span>{' '}
+                {itemsSinPrecio.map((i) => i.nombre).join(', ')}. Actualice el precio en Productos.
+              </p>
+            </div>
+          )}
+
           {/* COBRAR */}
           <div className="p-4 mt-auto">
             <button
               onClick={handleCobrar}
-              disabled={items.length === 0 || venta.isPending}
+              disabled={items.length === 0 || venta.isPending || tieneItemsSinPrecio}
               className="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2"
             >
               {venta.isPending ? <Spinner size="sm" /> : <span className="material-symbols-outlined text-[18px]">payments</span>}
