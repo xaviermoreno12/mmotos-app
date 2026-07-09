@@ -215,9 +215,17 @@ public class ProductoController {
                     if (matches.isEmpty()) {
                         // Crear producto nuevo con los datos del Excel
                         String codigoRaw = cols.length > 2 ? cols[2].trim() : "";
-                        String sku = !codigoRaw.isEmpty() ? codigoRaw
-                                   : (!cols[0].trim().isEmpty() ? cols[0].trim()
-                                   : "AUTO-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+                        String colA      = cols[0].trim();
+                        // "NAN" / "nan" es el valor que Excel exporta para celdas numéricas vacías
+                        boolean codigoValido = !codigoRaw.isEmpty()
+                            && !codigoRaw.equalsIgnoreCase("NAN")
+                            && !codigoRaw.equalsIgnoreCase("#N/A");
+                        boolean colAValida = !colA.isEmpty()
+                            && !colA.equalsIgnoreCase("NAN")
+                            && !colA.equalsIgnoreCase("#N/A");
+                        String sku = codigoValido ? codigoRaw
+                                   : colAValida   ? colA
+                                   : "AUTO-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
                         crearProductoUseCase.crear(new CrearProductoRequest(
                             sku, nombre, precio, "ARS", 0, 0, null, costo
                         ));
