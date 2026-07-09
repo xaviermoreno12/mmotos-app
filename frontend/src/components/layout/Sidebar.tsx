@@ -27,7 +27,12 @@ const navItems = [
   { label: 'Ajustes',           icon: 'settings',              path: '/ajustes',            soloAdmin: true  },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function Sidebar({ open, onClose }: SidebarProps) {
   const rol = localStorage.getItem('mmotos_rol');
   const esDueno = rol === 'DUENO';
   const items = navItems.filter(i => !i.soloAdmin || esDueno);
@@ -49,11 +54,20 @@ export function Sidebar() {
   const facturasPendientes = facturasBorradores.length;
 
   return (
-    <aside className="fixed top-0 left-0 bottom-0 w-[220px] bg-surface-container-low z-40 flex flex-col border-r border-outline-variant">
-      <div className="px-5 py-5 border-b border-outline-variant">
+    <aside className={`fixed top-0 left-0 bottom-0 w-[220px] bg-surface-container-low z-40 flex flex-col border-r border-outline-variant transition-transform duration-200 ease-in-out ${
+      open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+    }`}>
+      <div className="px-5 py-5 border-b border-outline-variant flex items-center justify-between">
         <span className="text-primary font-black text-sm tracking-widest uppercase leading-tight">
           M MOTOS<br />CORE
         </span>
+        <button
+          onClick={onClose}
+          className="md:hidden p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+          aria-label="Cerrar menú"
+        >
+          <span className="material-symbols-outlined text-[20px]">close</span>
+        </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-2">
@@ -61,6 +75,7 @@ export function Sidebar() {
           <NavLink
             key={item.path}
             to={item.path}
+            onClick={onClose}
             className={({ isActive }) =>
               isActive ? 'nav-item-active' : 'nav-item'
             }
