@@ -112,7 +112,7 @@ export function ReportesPage() {
 
       {error && <p className="text-error text-xs mb-4 px-3 py-2 bg-error-container/20 rounded border border-error-container/30">{error}</p>}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
         {/* Reporte Ventas */}
         <div className="card space-y-4">

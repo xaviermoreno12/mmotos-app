@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getGastos, crearGasto, eliminarGasto } from '../api/gastos';
 import type { GastoDTO } from '../types';
 import { Spinner } from '../components/ui/Spinner';
+import { Header } from '../components/layout/Header';
 
 const CATEGORIAS = [
   'Repuestos y Mercadería', 'Herramientas y Maquinaria', 'Insumos de Taller',
@@ -14,6 +15,7 @@ export function GastosPage() {
   const qc = useQueryClient();
   const { data: gastos = [], isLoading } = useQuery({ queryKey: ['gastos'], queryFn: getGastos });
   const [show, setShow] = useState(false);
+  const [confirmEliminar, setConfirmEliminar] = useState<string | null>(null);
   const [form, setForm] = useState({ descripcion: '', categoria: 'Otros', monto: '', metodoPago: 'EFECTIVO', observaciones: '' });
 
   const crearMut = useMutation({
@@ -34,7 +36,9 @@ export function GastosPage() {
   const total = (gastos as GastoDTO[]).reduce((a, g) => a + g.monto, 0);
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-surface-container">
+      <Header title="Gastos" />
+      <div className="pt-11 p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-on-surface text-sm font-semibold uppercase tracking-widest">Gastos</h2>
@@ -45,6 +49,7 @@ export function GastosPage() {
 
       {isLoading ? <div className="flex justify-center py-12"><Spinner /></div> : (
         <div className="card p-0 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="table-header">
               <th className="px-4 py-3 text-left">Fecha</th>
@@ -65,12 +70,20 @@ export function GastosPage() {
                     <td className="px-4 py-3 text-on-surface-variant text-xs">{g.metodoPago}</td>
                     <td className="px-4 py-3 text-right text-error font-mono">${g.monto.toLocaleString('es-AR')}</td>
                     <td className="px-4 py-3 text-center">
-                      <button className="text-error text-xs hover:opacity-70" onClick={() => eliminarMut.mutate(g.id)}>✕</button>
+                      {confirmEliminar === g.id ? (
+                        <span className="flex items-center gap-1 justify-center">
+                          <button className="text-xs text-error font-medium hover:opacity-70" onClick={() => { eliminarMut.mutate(g.id); setConfirmEliminar(null); }}>Sí</button>
+                          <button className="text-xs text-on-surface-variant hover:opacity-70" onClick={() => setConfirmEliminar(null)}>No</button>
+                        </span>
+                      ) : (
+                        <button className="text-error text-xs hover:opacity-70" onClick={() => setConfirmEliminar(g.id)}>✕</button>
+                      )}
                     </td>
                   </tr>
                 ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -106,6 +119,7 @@ export function GastosPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

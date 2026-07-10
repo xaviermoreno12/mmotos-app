@@ -11,6 +11,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,15 +55,25 @@ export function LoginPage() {
           </div>
           <div>
             <label className="kpi-label block mb-1.5">Contraseña</label>
-            <input
-              className="input"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
+            <div className="relative">
+              <input
+                className="input pr-10"
+                type={showPwd ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+                onClick={() => setShowPwd(v => !v)}
+                tabIndex={-1}
+              >
+                <span className="material-symbols-outlined text-[18px]">{showPwd ? 'visibility_off' : 'visibility'}</span>
+              </button>
+            </div>
           </div>
 
           {error && (

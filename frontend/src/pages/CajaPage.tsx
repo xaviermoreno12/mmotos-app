@@ -153,7 +153,7 @@ function CerrarCajaModal({ onClose, onConfirm, isLoading, montoSistema }: {
           </button>
           <button
             onClick={() => onConfirm(contado, observaciones)}
-            className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors"
+            className="px-4 py-2 rounded-lg bg-error hover:opacity-90 text-on-error text-sm font-medium transition-colors"
             disabled={isLoading}
           >
             {isLoading ? 'Cerrando...' : 'Confirmar Cierre'}
@@ -227,7 +227,7 @@ export function CajaPage() {
         action={
           cajaAbierta ? (
             <button
-              className="px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-medium transition-colors"
+              className="px-4 py-1.5 rounded-lg bg-error hover:opacity-90 text-on-error text-xs font-medium transition-colors"
               onClick={() => setShowCerrarModal(true)}
             >
               Cerrar caja
@@ -310,6 +310,7 @@ export function CajaPage() {
                   <EmptyState label="Sin ventas en este turno" />
                 </div>
               ) : (
+                <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="table-header">
@@ -332,6 +333,7 @@ export function CajaPage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           </>
@@ -343,6 +345,7 @@ export function CajaPage() {
             <div className="px-4 py-3 border-b border-outline-variant">
               <h3 className="text-sm font-medium text-on-surface">Últimas cajas cerradas</h3>
             </div>
+            <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="table-header">
@@ -369,6 +372,7 @@ export function CajaPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>

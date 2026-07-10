@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCheques, crearCheque, cambiarEstadoCheque } from '../api/cheques';
 import type { ChequeDTO } from '../types';
 import { Spinner } from '../components/ui/Spinner';
+import { Header } from '../components/layout/Header';
 
 const ESTADOS = ['PENDIENTE', 'COBRADO', 'RECHAZADO'];
 const estadoColor: Record<string, string> = {
@@ -18,9 +19,12 @@ export function ChequesPage() {
   const [show, setShow] = useState(false);
   const [form, setForm] = useState({ tipo: 'RECIBIDO', numero: '', banco: '', librador: '', monto: '', fechaEmision: '', fechaCobro: '', observaciones: '' });
 
+  const formVacio = { tipo: 'RECIBIDO', numero: '', banco: '', librador: '', monto: '', fechaEmision: '', fechaCobro: '', observaciones: '' };
+  const cerrarModal = () => { setShow(false); setForm(formVacio); };
+
   const crearMut = useMutation({
     mutationFn: () => crearCheque({ ...form, monto: parseFloat(form.monto) } as any),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cheques'] }); setShow(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cheques'] }); cerrarModal(); },
   });
 
   const estadoMut = useMutation({
@@ -31,7 +35,9 @@ export function ChequesPage() {
   const hoy = new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-surface-container">
+      <Header title="Cheques" />
+      <div className="pt-11 p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-on-surface text-sm font-semibold uppercase tracking-widest">Cheques</h2>
         <button className="btn-primary" onClick={() => setShow(true)}>+ Nuevo Cheque</button>
@@ -47,6 +53,7 @@ export function ChequesPage() {
 
       {isLoading ? <div className="flex justify-center py-12"><Spinner /></div> : (
         <div className="card p-0 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="table-header">
               <th className="px-4 py-3 text-left">N° Cheque</th>
@@ -70,7 +77,12 @@ export function ChequesPage() {
                       <select
                         className={`text-xs px-2 py-0.5 rounded font-medium border-0 cursor-pointer ${estadoColor[c.estado] || ''}`}
                         value={c.estado}
-                        onChange={e => estadoMut.mutate({ id: c.id, estado: e.target.value })}>
+                        onChange={e => {
+                          const nuevo = e.target.value;
+                          if (nuevo !== c.estado && window.confirm(`¿Cambiar cheque #${c.numero} a ${nuevo}?`)) {
+                            estadoMut.mutate({ id: c.id, estado: nuevo });
+                          }
+                        }}>
                         {ESTADOS.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </td>
@@ -78,11 +90,12 @@ export function ChequesPage() {
                 ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {show && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShow(false)}>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={cerrarModal}>
           <div className="card w-full max-w-md space-y-3" onClick={e => e.stopPropagation()}>
             <h3 className="text-on-surface font-semibold text-sm uppercase tracking-widest">Nuevo Cheque</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -108,11 +121,12 @@ export function ChequesPage() {
               <button className="btn-primary flex-1" onClick={() => crearMut.mutate()} disabled={!form.numero || !form.banco || !form.monto || !form.fechaCobro || crearMut.isPending}>
                 {crearMut.isPending ? <Spinner size="sm" /> : 'Guardar'}
               </button>
-              <button className="btn-secondary flex-1" onClick={() => setShow(false)}>Cancelar</button>
+              <button className="btn-secondary flex-1" onClick={cerrarModal}>Cancelar</button>
             </div>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

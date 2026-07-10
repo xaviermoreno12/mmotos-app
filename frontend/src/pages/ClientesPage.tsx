@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getClientes, crearCliente, actualizarCliente } from '../api/clientes';
 import type { ClienteDTO, CrearClienteRequest } from '../types';
 import { Spinner } from '../components/ui/Spinner';
+import { Header } from '../components/layout/Header';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const emptyForm: CrearClienteRequest = { cuit: '', nombre: '', direccion: '', telefono: '', email: '' };
 
@@ -14,9 +16,11 @@ export function ClientesPage() {
   const [form, setForm] = useState<CrearClienteRequest>(emptyForm);
   const [formError, setFormError] = useState('');
 
+  const debouncedBusqueda = useDebouncedValue(busqueda, 300);
+
   const { data: clientes = [], isLoading } = useQuery({
-    queryKey: ['clientes', busqueda],
-    queryFn: () => getClientes(busqueda || undefined),
+    queryKey: ['clientes', debouncedBusqueda],
+    queryFn: () => getClientes(debouncedBusqueda || undefined),
   });
 
   const crearMut = useMutation({
@@ -57,7 +61,9 @@ export function ClientesPage() {
     setForm(p => ({ ...p, [k]: e.target.value }));
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-surface-container">
+      <Header title="Clientes" />
+      <div className="pt-11 p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-on-surface text-sm font-semibold uppercase tracking-widest">Clientes</h2>
         <button className="btn-primary" onClick={() => setShowModal(true)}>+ Nuevo Cliente</button>
@@ -74,6 +80,7 @@ export function ClientesPage() {
         <div className="flex justify-center py-12"><Spinner /></div>
       ) : (
         <div className="card p-0 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="table-header">
@@ -101,7 +108,8 @@ export function ClientesPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <button onClick={() => toggleActivo(c)}
+                    <button
+                      onClick={() => { if (window.confirm(`¿${c.activo ? 'Desactivar' : 'Activar'} a ${c.nombre}?`)) toggleActivo(c); }}
                       className={`text-xs px-2 py-0.5 rounded font-medium transition-colors ${c.activo ? 'bg-green-900/20 text-green-400 hover:bg-red-900/20 hover:text-red-400' : 'bg-red-900/20 text-red-400 hover:bg-green-900/20 hover:text-green-400'}`}>
                       {c.activo ? 'Activo' : 'Inactivo'}
                     </button>
@@ -113,6 +121,7 @@ export function ClientesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -145,6 +154,7 @@ export function ClientesPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { getCobranzas, registrarCobranza } from '../api/cobranzas';
 import { getClientes } from '../api/clientes';
 import type { CobranzaDTO, ClienteDTO } from '../types';
 import { Spinner } from '../components/ui/Spinner';
+import { Header } from '../components/layout/Header';
 
 export function CobranzasPage() {
   const qc = useQueryClient();
@@ -25,7 +26,9 @@ export function CobranzasPage() {
   });
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-surface-container">
+      <Header title="Cobranzas" />
+      <div className="pt-11 p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-on-surface text-sm font-semibold uppercase tracking-widest">Cobranzas</h2>
         <button className="btn-primary" onClick={() => setShow(true)}>+ Registrar Cobranza</button>
@@ -33,6 +36,7 @@ export function CobranzasPage() {
 
       {isLoading ? <div className="flex justify-center py-12"><Spinner /></div> : (
         <div className="card p-0 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="table-header">
               <th className="px-4 py-3 text-left">Fecha</th>
@@ -55,6 +59,7 @@ export function CobranzasPage() {
                 ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -90,6 +95,7 @@ export function CobranzasPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

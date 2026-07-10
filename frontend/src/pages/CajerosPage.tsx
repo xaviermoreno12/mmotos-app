@@ -3,13 +3,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCajeros, crearCajero, actualizarCajero } from '../api/cajeros';
 import type { CajeroDTO, CrearCajeroRequest } from '../types';
 import { Spinner } from '../components/ui/Spinner';
+import { Header } from '../components/layout/Header';
 
 export function CajerosPage() {
   const qc = useQueryClient();
   const rol = localStorage.getItem('mmotos_rol');
   const esDueno = rol?.toUpperCase() === 'DUENO';
   const { data: todosCajeros = [], isLoading } = useQuery({ queryKey: ['cajeros'], queryFn: getCajeros });
-  const cajeros = (todosCajeros as CajeroDTO[]).filter(c => c.activo);
+  const [mostrarInactivos, setMostrarInactivos] = useState(false);
+  const cajeros = mostrarInactivos
+    ? (todosCajeros as CajeroDTO[])
+    : (todosCajeros as CajeroDTO[]).filter(c => c.activo);
 
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState<CajeroDTO | null>(null);
@@ -61,16 +65,27 @@ export function CajerosPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-surface-container">
+      <Header title="Cajeros" />
+      <div className="pt-11 p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-on-surface text-sm font-semibold uppercase tracking-widest">Cajeros</h2>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>+ Nuevo Cajero</button>
+        <div className="flex items-center gap-2">
+          <button
+            className={`text-xs px-3 py-1.5 rounded border transition-colors ${mostrarInactivos ? 'bg-primary-container text-white border-primary-container' : 'border-outline-variant text-on-surface-variant'}`}
+            onClick={() => setMostrarInactivos(v => !v)}
+          >
+            {mostrarInactivos ? 'Ocultar inactivos' : 'Ver inactivos'}
+          </button>
+          <button className="btn-primary" onClick={() => setShowModal(true)}>+ Nuevo Cajero</button>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="flex justify-center py-12"><Spinner /></div>
       ) : (
         <div className="card p-0 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="table-header">
@@ -144,6 +159,7 @@ export function CajerosPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -199,6 +215,7 @@ export function CajerosPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

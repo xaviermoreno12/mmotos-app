@@ -4,6 +4,7 @@ import { getCompras, registrarCompra } from '../api/compras';
 import { getProveedores } from '../api/proveedores';
 import type { CompraDTO, LineaCompraRequest, CrearCompraRequest, ProveedorDTO, ProductoDTO } from '../types';
 import { Spinner } from '../components/ui/Spinner';
+import { Header } from '../components/layout/Header';
 import { client } from '../api/client';
 
 interface LineaUI extends LineaCompraRequest {
@@ -97,7 +98,9 @@ export function ComprasPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-surface-container">
+      <Header title="Compras" />
+      <div className="pt-11 p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-on-surface text-sm font-semibold uppercase tracking-widest">Compras</h2>
         {!showForm && <button className="btn-primary" onClick={() => setShowForm(true)}>+ Nueva Compra</button>}
@@ -213,6 +216,7 @@ export function ComprasPage() {
         <div className="flex justify-center py-12"><Spinner /></div>
       ) : (
         <div className="card p-0 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="table-header">
@@ -243,8 +247,10 @@ export function ComprasPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

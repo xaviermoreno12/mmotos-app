@@ -35,7 +35,7 @@ export function HomePage() {
         <h2 className="text-on-surface-variant text-xs uppercase tracking-widest mb-8">
           ¿Qué querés hacer?
         </h2>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {visibles.map((m) => (
             <button
               key={m.path}

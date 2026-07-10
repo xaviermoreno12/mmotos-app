@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Header } from '../components/layout/Header';
 import { Badge } from '../components/ui/Badge';
 import { Spinner } from '../components/ui/Spinner';
 import { useBuscarProductos, useCrearProducto } from '../hooks/useProductos';
-import { getHistorialProducto, actualizarProducto, actualizarPreciosDesdeXlsx } from '../api/productos';
+import { getHistorialProducto, actualizarProducto, actualizarPreciosDesdeXlsx, getTodosProductos } from '../api/productos';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import type { ResultadoImportacion } from '../api/productos';
 import type { ActualizarProductoRequest, CrearProductoRequest, ProductoDTO } from '../types';
 
@@ -34,6 +35,9 @@ export function ProductosPage() {
   const rol = localStorage.getItem('mmotos_rol');
 
   const [termino, setTermino] = useState('');
+  const [pagina, setPagina] = useState(0);
+  const debouncedTermino = useDebouncedValue(termino, 300);
+  const enBusqueda = debouncedTermino.trim().length >= 2;
   const [showModal, setShowModal] = useState(false);
   const [verProducto, setVerProducto] = useState<ProductoDTO | null>(null);
   const [editando, setEditando] = useState<ProductoDTO | null>(null);
@@ -45,7 +49,16 @@ export function ProductosPage() {
   const [importando, setImportando] = useState(false);
   const [importResult, setImportResult] = useState<ResultadoImportacion | null>(null);
 
-  const { data: productos, isLoading } = useBuscarProductos(termino);
+  const { data: busquedaData, isLoading: busquedaLoading } = useBuscarProductos(termino);
+  const { data: todosData, isLoading: todosLoading } = useQuery({
+    queryKey: ['todos-productos-browse', pagina],
+    queryFn: () => getTodosProductos(pagina, 50),
+    enabled: !enBusqueda,
+    placeholderData: keepPreviousData,
+  });
+
+  const displayProductos = enBusqueda ? (busquedaData ?? []) : (todosData?.contenido ?? []);
+  const displayLoading = enBusqueda ? busquedaLoading : todosLoading;
   const crear = useCrearProducto();
 
   const { data: historial = [], isLoading: historialLoading } = useQuery({
@@ -140,13 +153,14 @@ export function ProductosPage() {
               className="input pl-10"
               placeholder="Buscar por nombre, SKU..."
               value={termino}
-              onChange={(e) => setTermino(e.target.value)}
+              onChange={(e) => { setTermino(e.target.value); setPagina(0); }}
             />
           </div>
-          {isLoading && <Spinner size="sm" />}
+          {displayLoading && <Spinner size="sm" />}
         </div>
 
         <div className="card p-0 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="table-header">
@@ -161,20 +175,14 @@ export function ProductosPage() {
               </tr>
             </thead>
             <tbody>
-              {termino.trim().length < 2 ? (
+              {!displayLoading && displayProductos.length === 0 ? (
                 <tr>
                   <td colSpan={colSpan} className="px-4 py-12 text-center text-on-surface-variant text-sm">
-                    Ingresá al menos 2 caracteres para buscar
-                  </td>
-                </tr>
-              ) : productos && productos.length === 0 ? (
-                <tr>
-                  <td colSpan={colSpan} className="px-4 py-12 text-center text-on-surface-variant text-sm">
-                    Sin resultados para "{termino}"
+                    {enBusqueda ? `Sin resultados para "${termino}"` : 'Sin productos cargados'}
                   </td>
                 </tr>
               ) : (
-                productos?.map((p) => (
+                displayProductos.map((p) => (
                   <tr key={p.id} className="table-row">
                     <td className="px-4 py-3 font-mono text-xs text-on-surface-variant">{p.sku}</td>
                     <td className="px-4 py-3">
@@ -244,7 +252,30 @@ export function ProductosPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
+
+        {!enBusqueda && todosData && todosData.totalPaginas > 1 && (
+          <div className="flex items-center gap-3 mt-3 justify-center">
+            <button
+              disabled={pagina === 0}
+              onClick={() => setPagina(p => p - 1)}
+              className="btn-secondary px-3 py-1 text-xs disabled:opacity-40"
+            >
+              ← Anterior
+            </button>
+            <span className="text-xs text-on-surface-variant">
+              Página {todosData.paginaActual + 1} de {todosData.totalPaginas} · {todosData.totalElementos} productos
+            </span>
+            <button
+              disabled={todosData.esUltima}
+              onClick={() => setPagina(p => p + 1)}
+              className="btn-secondary px-3 py-1 text-xs disabled:opacity-40"
+            >
+              Siguiente →
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Modal ver producto + historial */}

@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProveedores, crearProveedor, actualizarProveedor } from '../api/proveedores';
 import type { ProveedorDTO, CrearProveedorRequest } from '../types';
 import { Spinner } from '../components/ui/Spinner';
+import { Header } from '../components/layout/Header';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const emptyForm: CrearProveedorRequest = { cuit: '', nombre: '', contacto: '', telefono: '', email: '' };
 
@@ -14,9 +16,11 @@ export function ProveedoresPage() {
   const [form, setForm] = useState<CrearProveedorRequest>(emptyForm);
   const [formError, setFormError] = useState('');
 
+  const debouncedBusqueda = useDebouncedValue(busqueda, 300);
+
   const { data: proveedores = [], isLoading } = useQuery({
-    queryKey: ['proveedores', busqueda],
-    queryFn: () => getProveedores(busqueda || undefined),
+    queryKey: ['proveedores', debouncedBusqueda],
+    queryFn: () => getProveedores(debouncedBusqueda || undefined),
   });
 
   const crearMut = useMutation({
@@ -57,7 +61,9 @@ export function ProveedoresPage() {
     setForm(prev => ({ ...prev, [k]: e.target.value }));
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-surface-container">
+      <Header title="Proveedores" />
+      <div className="pt-11 p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-on-surface text-sm font-semibold uppercase tracking-widest">Proveedores</h2>
         <button className="btn-primary" onClick={() => setShowModal(true)}>+ Nuevo Proveedor</button>
@@ -74,6 +80,7 @@ export function ProveedoresPage() {
         <div className="flex justify-center py-12"><Spinner /></div>
       ) : (
         <div className="card p-0 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="table-header">
@@ -97,7 +104,8 @@ export function ProveedoresPage() {
                   <td className="px-4 py-3 text-on-surface-variant">{p.telefono || '—'}</td>
                   <td className="px-4 py-3 text-on-surface-variant">{p.email || '—'}</td>
                   <td className="px-4 py-3">
-                    <button onClick={() => toggleActivo(p)}
+                    <button
+                      onClick={() => { if (window.confirm(`¿${p.activo ? 'Desactivar' : 'Activar'} a ${p.nombre}?`)) toggleActivo(p); }}
                       className={`text-xs px-2 py-0.5 rounded font-medium transition-colors ${p.activo ? 'bg-green-900/20 text-green-400 hover:bg-red-900/20 hover:text-red-400' : 'bg-red-900/20 text-red-400 hover:bg-green-900/20 hover:text-green-400'}`}>
                       {p.activo ? 'Activo' : 'Inactivo'}
                     </button>
@@ -109,6 +117,7 @@ export function ProveedoresPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -141,6 +150,7 @@ export function ProveedoresPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

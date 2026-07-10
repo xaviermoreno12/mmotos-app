@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getMetodosPago, actualizarMetodoPago, eliminarMetodoPago } from '../api/metodosPago';
 import { client } from '../api/client';
 import { Spinner } from '../components/ui/Spinner';
+import { Header } from '../components/layout/Header';
 
 export function MetodosPage() {
   const qc = useQueryClient();
@@ -51,7 +52,9 @@ export function MetodosPage() {
     }`;
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-surface-container">
+      <Header title="Métodos de Pago" />
+      <div className="pt-11 p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-on-surface text-sm font-semibold uppercase tracking-widest">Métodos de Pago</h2>
         <button className="btn-primary" onClick={() => setShowAgregar(true)}>+ Agregar método</button>
@@ -71,6 +74,7 @@ export function MetodosPage() {
           </div>
 
           <div className="card p-0 overflow-hidden max-w-2xl">
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-header">
@@ -146,6 +150,7 @@ export function MetodosPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}
@@ -184,6 +189,7 @@ export function MetodosPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

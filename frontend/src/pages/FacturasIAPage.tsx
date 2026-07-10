@@ -406,7 +406,7 @@ export function FacturasIAPage() {
   const { data: borradores = [], isLoading } = useQuery({
     queryKey: ['facturas-borradores'],
     queryFn: getFacturasBorradores,
-    refetchInterval: 5000,
+    refetchInterval: 15000,
   });
 
   const confirmarMut = useMutation({

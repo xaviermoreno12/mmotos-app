@@ -2,8 +2,10 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tansta
 import { getTodosProductos, actualizarProducto } from '../api/productos';
 import { client } from '../api/client';
 import { Spinner } from '../components/ui/Spinner';
+import { Header } from '../components/layout/Header';
 import type { ProductoDTO, ActualizarProductoRequest } from '../types';
 import { useState } from 'react';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 function fmt(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
@@ -20,6 +22,8 @@ async function descargarListaProductos() {
 export function ListasPage() {
   const qc = useQueryClient();
   const [pagina, setPagina] = useState(0);
+  const [busqueda, setBusqueda] = useState('');
+  const debouncedBusqueda = useDebouncedValue(busqueda, 300);
   const [descargando, setDescargando] = useState(false);
   const [editando, setEditando] = useState<ProductoDTO | null>(null);
   const [editForm, setEditForm] = useState<ActualizarProductoRequest>({});
@@ -48,8 +52,8 @@ export function ListasPage() {
   };
 
   const { data, isLoading } = useQuery({
-    queryKey: ['todos-productos', pagina],
-    queryFn: () => getTodosProductos(pagina, 50),
+    queryKey: ['todos-productos', pagina, debouncedBusqueda],
+    queryFn: () => getTodosProductos(pagina, 50, debouncedBusqueda),
     placeholderData: keepPreviousData,
   });
 
@@ -64,7 +68,9 @@ export function ListasPage() {
   if (isLoading && !data) return <div className="flex justify-center py-20"><Spinner /></div>;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-surface-container">
+      <Header title="Lista de Productos" />
+      <div className="pt-11 p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-on-surface text-sm font-semibold uppercase tracking-widest">
           Lista de Productos{' '}
@@ -78,10 +84,18 @@ export function ListasPage() {
         </button>
       </div>
 
+      <input
+        className="input max-w-sm"
+        placeholder="Filtrar por nombre o SKU..."
+        value={busqueda}
+        onChange={e => { setBusqueda(e.target.value); setPagina(0); }}
+      />
+
       {criticos.length > 0 && (
         <div>
           <p className="kpi-label mb-2 text-error">Con menos stock ({criticos.length})</p>
           <div className="card p-0 overflow-hidden border border-error/20">
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="table-header">
                 <th className="text-left px-4 py-2">SKU</th>
@@ -108,6 +122,7 @@ export function ListasPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -115,6 +130,7 @@ export function ListasPage() {
       <div>
         <p className="kpi-label mb-2">Todos los productos</p>
         <div className="card p-0 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="table-header">
               <th className="text-left px-4 py-2">SKU</th>
@@ -145,6 +161,7 @@ export function ListasPage() {
                 ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {data && data.totalPaginas > 1 && (
@@ -241,6 +258,7 @@ export function ListasPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -4,8 +4,6 @@ import { Spinner } from '../components/ui/Spinner';
 import { client } from '../api/client';
 import { actualizarCotizacion } from '../api/ventas';
 
-const rol = localStorage.getItem('mmotos_rol');
-
 type ModoFiscal = 'NO_FISCAL' | 'AFIP' | 'HASAR';
 
 const MODO_INFO: Record<ModoFiscal, { label: string; color: string; desc: string }> = {
@@ -24,6 +22,7 @@ const DN_DEFRANCE = {
 };
 
 export function AjustesPage() {
+  const rol = localStorage.getItem('mmotos_rol');
   const [confirmar, setConfirmar] = useState(false);
   const [apagando, setApagando] = useState(false);
 

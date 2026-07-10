@@ -18,10 +18,11 @@ function timeAgo(fechaStr: string) {
   return `hace ${Math.floor(diff / 3600)}h`;
 }
 
-function BorradorCard({ borrador, onConfirmar, onRechazar }: {
+function BorradorCard({ borrador, onConfirmar, onRechazar, confirmando }: {
   borrador: CompraBorradorDTO;
   onConfirmar: () => void;
   onRechazar: () => void;
+  confirmando?: boolean;
 }) {
   const qc = useQueryClient();
   const [lineas, setLineas] = useState<LineaBorradorDTO[]>(borrador.lineas);
@@ -168,10 +169,13 @@ function BorradorCard({ borrador, onConfirmar, onRechazar }: {
       <div className="flex gap-3 pt-1">
         <button
           onClick={onConfirmar}
-          className="btn-primary flex-1 flex items-center justify-center gap-2"
+          disabled={confirmando}
+          className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-60"
         >
-          <span className="material-symbols-outlined text-[16px]">check_circle</span>
-          Confirmar compra
+          {confirmando
+            ? <Spinner size="sm" />
+            : <span className="material-symbols-outlined text-[16px]">check_circle</span>}
+          {confirmando ? 'Confirmando...' : 'Confirmar compra'}
         </button>
         <button
           onClick={onRechazar}
@@ -191,7 +195,7 @@ export function RemitosPendientesPage() {
   const { data: borradores = [], isLoading } = useQuery({
     queryKey: ['borradores'],
     queryFn: getBorradores,
-    refetchInterval: 5000,
+    refetchInterval: 15000,
   });
 
   const confirmarMut = useMutation({
@@ -229,6 +233,7 @@ export function RemitosPendientesPage() {
             borrador={b}
             onConfirmar={() => confirmarMut.mutate(b.id)}
             onRechazar={() => rechazarMut.mutate(b.id)}
+            confirmando={confirmarMut.isPending && confirmarMut.variables === b.id}
           />
         ))}
 

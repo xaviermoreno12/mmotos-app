@@ -23,10 +23,10 @@ export async function getHistorialProducto(id: string): Promise<HistorialVentaDT
   return response.data;
 }
 
-export async function getTodosProductos(pagina = 0, tamano = 50): Promise<PaginaProductosDTO> {
-  const response = await client.get<PaginaProductosDTO>('/api/productos/todos', {
-    params: { pagina, tamano },
-  });
+export async function getTodosProductos(pagina = 0, tamano = 50, busqueda = ''): Promise<PaginaProductosDTO> {
+  const params: Record<string, string | number> = { pagina, tamano };
+  if (busqueda.trim()) params.busqueda = busqueda.trim();
+  const response = await client.get<PaginaProductosDTO>('/api/productos/todos', { params });
   return response.data;
 }
 

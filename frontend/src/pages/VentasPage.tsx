@@ -110,6 +110,7 @@ export function VentasPage() {
           ) : error ? (
             <div className="px-4 py-12 text-center text-error">Error al cargar ventas</div>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="table-header">
@@ -174,6 +175,7 @@ export function VentasPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>
@@ -203,8 +205,7 @@ export function VentasPage() {
             </p>
             {anulError && <p className="text-error text-xs">{anulError}</p>}
             <div className="flex gap-2 pt-1">
-              <button className="btn-primary flex-1 flex items-center justify-center gap-2"
-                style={{ background: 'rgb(220 38 38)' }}
+              <button className="btn-primary flex-1 flex items-center justify-center gap-2 !bg-error hover:!opacity-90"
                 onClick={() => anularMut.mutate()}
                 disabled={!motivo.trim() || anularMut.isPending}>
                 {anularMut.isPending ? <Spinner size="sm" /> : null}

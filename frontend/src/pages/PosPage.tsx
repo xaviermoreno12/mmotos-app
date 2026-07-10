@@ -9,15 +9,8 @@ import { useVenta } from '../hooks/useVenta';
 import { useCartStore } from '../store/cartStore';
 import { cambiarEstadoPresupuesto } from '../api/presupuestos';
 import { getVentaCompleta } from '../api/ventas';
+import { getMetodosPago } from '../api/metodosPago';
 import type { CartItem, ProductoDTO, VentaResponse } from '../types';
-
-const METODOS = ['EFECTIVO', 'TARJETA_DEBITO', 'TRANSFERENCIA', 'MERCADO_PAGO'];
-const METODO_LABELS: Record<string, string> = {
-  EFECTIVO: 'Efectivo',
-  TARJETA_DEBITO: 'Débito',
-  TRANSFERENCIA: 'Transf.',
-  MERCADO_PAGO: 'MP',
-};
 
 function fmt(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
@@ -31,6 +24,12 @@ export function PosPage() {
   const [ventaOk, setVentaOk] = useState<VentaResponse | null>(null);
   const [presupuestoId, setPresupuestoId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { data: metodosPago = [] } = useQuery({
+    queryKey: ['metodos-pago'],
+    queryFn: getMetodosPago,
+  });
+  const metodosCobro = metodosPago.filter(m => m.aceptaCobro && m.habilitado);
 
   const { data: resultados, isLoading: buscando } = useBuscarProductos(termino);
   const { items, tipoFactura, metodoPago, montoPago, addItem, loadItems, removeItem,
@@ -257,17 +256,19 @@ export function PosPage() {
           <div className="p-4 border-b border-outline-variant">
             <p className="kpi-label mb-2">Método de pago</p>
             <div className="grid grid-cols-2 gap-2">
-              {METODOS.map((m) => (
+              {metodosCobro.length === 0 ? (
+                <p className="col-span-2 text-xs text-on-surface-variant">Cargando métodos...</p>
+              ) : metodosCobro.map((m) => (
                 <button
-                  key={m}
-                  onClick={() => setMetodoPago(m)}
+                  key={m.codigo}
+                  onClick={() => setMetodoPago(m.codigo)}
                   className={`py-2 text-xs font-medium rounded border transition-colors ${
-                    metodoPago === m
+                    metodoPago === m.codigo
                       ? 'bg-primary-container text-white border-primary-container'
                       : 'border-outline-variant text-on-surface-variant hover:text-on-surface'
                   }`}
                 >
-                  {METODO_LABELS[m]}
+                  {m.nombre}
                 </button>
               ))}
             </div>

@@ -2,8 +2,10 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { getTodosProductos } from '../api/productos';
 import { client } from '../api/client';
 import { Spinner } from '../components/ui/Spinner';
+import { Header } from '../components/layout/Header';
 import type { ProductoDTO } from '../types';
 import { useState } from 'react';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 function fmt(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
@@ -23,10 +25,11 @@ export function PreciosPage() {
   const [pagina, setPagina] = useState(0);
   const [descargando, setDescargando] = useState(false);
   const [busqueda, setBusqueda] = useState('');
+  const debouncedBusqueda = useDebouncedValue(busqueda, 300);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['todos-productos-precios', pagina],
-    queryFn: () => getTodosProductos(pagina, 50),
+    queryKey: ['todos-productos-precios', pagina, debouncedBusqueda],
+    queryFn: () => getTodosProductos(pagina, 50, debouncedBusqueda),
     placeholderData: keepPreviousData,
     enabled: esDueno,
   });
@@ -41,11 +44,6 @@ export function PreciosPage() {
   }
 
   const productos = data?.contenido ?? [];
-  const filtrados = productos.filter((p: ProductoDTO) =>
-    !busqueda.trim() ||
-    p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    p.sku.toLowerCase().includes(busqueda.toLowerCase())
-  );
 
   const handleDescargar = async () => {
     setDescargando(true);
@@ -53,7 +51,9 @@ export function PreciosPage() {
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="min-h-screen bg-surface-container">
+      <Header title="Lista de Precios" />
+      <div className="pt-11 p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-on-surface text-sm font-semibold uppercase tracking-widest">
           Lista de Precios{' '}
@@ -72,6 +72,7 @@ export function PreciosPage() {
         placeholder="Filtrar por nombre o SKU..."
         value={busqueda}
         onChange={e => { setBusqueda(e.target.value); setPagina(0); }}
+
       />
 
       {isLoading && !data ? (
@@ -79,6 +80,7 @@ export function PreciosPage() {
       ) : (
         <>
           <div className="card p-0 overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="table-header">
@@ -93,9 +95,9 @@ export function PreciosPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtrados.length === 0
+                {productos.length === 0
                   ? <tr><td colSpan={8} className="px-4 py-8 text-center text-on-surface-variant">Sin resultados</td></tr>
-                  : filtrados.map((p: ProductoDTO) => {
+                  : productos.map((p: ProductoDTO) => {
                     const margen = p.precioCompra && p.precioCompra > 0
                       ? ((p.precioEnPesos - p.precioCompra) / p.precioCompra * 100).toFixed(1)
                       : null;
@@ -130,6 +132,7 @@ export function PreciosPage() {
                   })}
               </tbody>
             </table>
+            </div>
           </div>
 
           {data && data.totalPaginas > 1 && (
@@ -155,6 +158,7 @@ export function PreciosPage() {
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

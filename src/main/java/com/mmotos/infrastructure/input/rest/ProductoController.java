@@ -101,8 +101,15 @@ public class ProductoController {
     @PreAuthorize("hasAnyRole('CAJERO', 'DUENO')")
     public PaginaProductosDTO todos(
         @RequestParam(defaultValue = "0")  int pagina,
-        @RequestParam(defaultValue = "50") int tamano
+        @RequestParam(defaultValue = "50") int tamano,
+        @RequestParam(defaultValue = "")   String busqueda
     ) {
+        if (!busqueda.isBlank()) {
+            List<ProductoDTO> lista = buscarProductoUseCase.buscar(
+                new ProductoFiltroDTO(null, null, null, busqueda.trim())
+            );
+            return new PaginaProductosDTO(lista, 0, 1, lista.size(), true);
+        }
         var page = buscarProductoUseCase.todos(pagina, tamano);
         return new PaginaProductosDTO(
             page.getContent(),
